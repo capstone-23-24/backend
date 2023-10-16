@@ -1,7 +1,7 @@
 # Backend
 this folder will serve as the backend for our system and will store all API connections, database functionalities, and the logic behind the demographics estimators. 
 
-# Usaage
+# Usage
 Install python3 on your device
 
 Create a virtual env with the commands; python3 -m venv 'environmentName'
