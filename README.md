@@ -4,7 +4,7 @@ this folder will serve as the backend for our system and will store all API conn
 # Usaage
 Install python3 on your device
 
-Create a virtual env with the commands; python3 -m venv <environmentName>
+Create a virtual env with the commands; python3 -m venv 'environmentName'
 
 Start your Virtual Environment
 
