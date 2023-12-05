@@ -13,3 +13,7 @@ Start your Virtual Environment
 Install requirements.txt: pip install -r requirements.txt
 
 Update rewuirements.txt: pip freeze > requirements.txt
+
+# Data
+
+The data folder has some helping python scripts in config that does not have proper paths set up for the intermediate data files.
