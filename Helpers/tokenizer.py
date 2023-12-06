@@ -3,38 +3,51 @@ from gensim.parsing.preprocessing import remove_stopwords
 from gensim.utils import simple_preprocess
 
 def openCSV(filePath):
-
-    text = ""
-    with open(filePath, newline='') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-        for row in spamreader:
-            row = processRow(', '.join(row))
-            newRow = " ".join(row)
-            text += newRow
+    column1 = 'case_part1' 
+    column2= 'case_part2'
+    
+    combined_text = []
+    with open(filePath, mode='r') as csvfile:
+        csv_reader = csv.DictReader(csvfile)
+        
+        if column1 not in csv_reader.fieldnames or column2 not in csv_reader.fieldnames:
+            print("no such column found in csv")
+        
+        for row in csv_reader:
+            combined_text = f"{row[column1]} {row[column2]}"
+            rawText = processRow(combined_text)
             
+            updateCSV(" ".join(rawText))
+        
+        # spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        # for row in spamreader:
+        #     print('finished')
+        #     row = processRow(', '.join(row))
+        #     newRow = " ".join(row)
+        #     text += newRow
             
-    print(f'The joined string has been added to the CSV file: {text}')
-    writeCSV(text)
+    # print(f'The joined string has been added to the CSV file: {text}')
+    # updateCSV(text)
     
     
-def writeCSV(text):
-    csv_filename = "output.csv"
+def updateCSV(text):
+    csv_filename = "SMOutput.csv"
     splitIndex = 32767
     
-    if len(text) > splitIndex:
-        
+    case_part1 = text[:splitIndex+ 1]
+    case_part2 = text[splitIndex + 1:]
     
-    with open(csv_filename, mode='w', newline="") as csv_file:
+    with open(csv_filename, mode='a', newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow([text])
-    
-        
-      
+        if csv_file.tell() == 0:
+            csv_writer.writerow(["case_part1", "case_part2"])  
+            
+        csv_writer.writerow([case_part1, case_part2])
+                
 def processRow(input_text):
     remove_stopwords(input_text)
     tokens = simple_preprocess(input_text, deacc=True)
     
-
     # # You can add more custom stop words if needed
     custom_stop_words = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
     "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their",
@@ -51,9 +64,22 @@ def processRow(input_text):
     return filtered_tokens
           
 def main():
+    # this is the test case
     openCSV('./stringified.csv')
     
+    """
+    _summary_
     
+    Use this function to iterate through the text data
+    in a populated csv to pupolate the SMOutput.csv with the process results
+    
+    Open Csv function earlier is just the test function to handle a single case
+    should be extended iterate through full csv. 
+    """
+    
+    
+    
+        
 
 if __name__ == "__main__":
     main()
