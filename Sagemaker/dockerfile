@@ -1,0 +1,30 @@
+# Use an official PyTorch runtime as a parent image
+FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+
+# Set the working directory in the container
+WORKDIR /opt/ml/model
+
+# Install any needed packages specified in requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the content of the local src directory to the working directory
+COPY roberta_model_class.py .
+COPY roberta_dataset_class.py .
+COPY entry_point.py .
+
+# SageMaker expects the program to be in the /opt/ml/code directory
+COPY roberta_model.py /opt/ml/code/roberta_model_class.py
+COPY roberta_dataset.py /opt/ml/code/roberta_dataset_class.py
+COPY sagemaker_entry_point.py /opt/ml/code/entry_point.py
+
+# Set environment variables
+ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
+
+# Set up the environment for SageMaker Script Mode
+ENV SM_CHANNEL_TRAINING /opt/ml/input/data/training
+ENV SM_MODEL_DIR /opt/ml/model
+ENV SM_OUTPUT_DIR /opt/ml/output
+
+# Define an entry point
+ENTRYPOINT ["python", "/opt/ml/code/entry_point.py"]
