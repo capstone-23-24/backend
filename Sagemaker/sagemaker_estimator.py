@@ -12,4 +12,4 @@ estimator = PyTorch(entry_point='saggemaker_entry_point.py',
                     instance_count=1,
                     instance_type='ml.p2.xlarge',  # Adjust instance type as needed
                     hyperparameters={'your_hyperparameter': 'value'},
-                    output_path='s3://your-s3-bucket/output-path') # Our s3 bucket
+                    output_path='s3://sagemaker-us-east-1-131750570751/Output/') # Our s3 bucket

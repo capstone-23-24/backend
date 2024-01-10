@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the content of the local src directory to the working directory
 COPY roberta_model_class.py .
 COPY roberta_dataset_class.py .
-COPY entry_point.py .
+COPY sagemaker_entry_point.py .
 
 # SageMaker expects the program to be in the /opt/ml/code directory
 COPY roberta_model.py /opt/ml/code/roberta_model_class.py
