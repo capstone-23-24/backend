@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import LabelEncoder
-from transformers import RobertaForSequenceClassification, RobertaTokenizer, AdamW
+from transformers import AdamW
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
