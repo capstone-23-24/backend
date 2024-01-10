@@ -1,7 +1,7 @@
 from sagemaker.pytorch import PyTorch
 
 # Specify your Docker image URI
-docker_image_uri = 'your-docker-image-uri'
+docker_image_uri = '131750570751.dkr.ecr.us-east-1.amazonaws.com/capstone:latest'
 
 # Create a PyTorch estimator
 estimator = PyTorch(entry_point='saggemaker_entry_point.py',
