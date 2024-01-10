@@ -4,12 +4,15 @@ from sagemaker.pytorch import PyTorch
 docker_image_uri = '131750570751.dkr.ecr.us-east-1.amazonaws.com/capstone:latest'
 
 # Create a PyTorch estimator
-estimator = PyTorch(entry_point='saggemaker_entry_point.py',
-                    source_dir='path/to/your/script',
+estimator = PyTorch(image_uri = docker_image_uri,
+                    entry_point='sagemaker_entry_point.py',
+                    source_dir='s3://sagemaker-us-east-1-131750570751/Scripts/',
                     role='arn:aws:iam::131750570751:role/service-role/AmazonSageMaker-ExecutionRole-20231120T210740',
                     framework_version='1.8.1',
                     py_version='py3',
                     instance_count=1,
                     instance_type='ml.t3.medium',  # Adjust instance type as needed
-                    hyperparameters={'your_hyperparameter': 'value'},
+                    hyperparameters={'epochs': 1,
+                        'per_device_train_batch_size': 32,
+                        'model_name_or_path': 'distilbert-base-uncased'},
                     output_path='s3://sagemaker-us-east-1-131750570751/Output/') # Our s3 bucket
