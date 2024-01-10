@@ -4,7 +4,7 @@ from gensim.utils import simple_preprocess
 
 def openCSV(filePath):
     column1 = 'case_part1' 
-    column2= 'case_part2'
+    column2 = 'case_part2'
     
     combined_text = []
     with open(filePath, mode='r') as csvfile:
@@ -16,19 +16,7 @@ def openCSV(filePath):
         for row in csv_reader:
             combined_text = f"{row[column1]} {row[column2]}"
             rawText = processRow(combined_text)
-            
             updateCSV(" ".join(rawText))
-        
-        # spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-        # for row in spamreader:
-        #     print('finished')
-        #     row = processRow(', '.join(row))
-        #     newRow = " ".join(row)
-        #     text += newRow
-            
-    # print(f'The joined string has been added to the CSV file: {text}')
-    # updateCSV(text)
-    
     
 def updateCSV(text):
     csv_filename = "SMOutput.csv"
@@ -77,9 +65,6 @@ def main():
     should be extended iterate through full csv. 
     """
     
-    
-    
-        
 
 if __name__ == "__main__":
     main()
