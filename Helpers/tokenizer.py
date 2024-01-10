@@ -1,9 +1,13 @@
 import csv
+import sys
+
+csv.field_size_limit(sys.maxsize)
+
 from gensim.parsing.preprocessing import remove_stopwords
 from gensim.utils import simple_preprocess
 
 def openCSV(filePath):
-    column1 = 'case_part1' 
+    column1 = 'Text' 
     
     
     combined_text = []
@@ -19,7 +23,7 @@ def openCSV(filePath):
             updateCSV(" ".join(rawText))
     
 def updateCSV(text):
-    csv_filename = "SMOutput.csv"
+    csv_filename = "./training_data.csv"
     
     
     case_part1 = text
@@ -27,7 +31,7 @@ def updateCSV(text):
     with open(csv_filename, mode='a', newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
         if csv_file.tell() == 0:
-            csv_writer.writerow(["case_part1"])  
+            csv_writer.writerow(["Text"])  
             
         csv_writer.writerow([case_part1])
                 
@@ -52,7 +56,7 @@ def processRow(input_text):
           
 def main():
     # this is the test case
-    openCSV('./stringified.csv')
+    openCSV('./training_data.csv')
     
     """
     _summary_
