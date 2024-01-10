@@ -44,23 +44,21 @@ def main():
 
     # Load and preprocess your data
     train_data = pd.read_csv(args.train_data)
-    validation_data = pd.read_csv(args.validation_data)
+    test_data = pd.read_csv(args.test_data)
 
     label_encoder = LabelEncoder()
 
-    train_case_part1 = train_data['casePart1'].tolist()
-    train_case_part2 = train_data['casePart2'].tolist()
+    train_case = train_data['case'].tolist()
     train_labels_str = train_data[['label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8', 'label9', 'label10']]
     train_labels = label_encoder.fit_transform(train_labels_str.values.flatten()).reshape(train_labels_str.shape)
 
-    validation_case_part1 = validation_data['casePart1'].tolist()
-    validation_case_part2 = validation_data['casePart2'].tolist()
-    validation_labels_str = validation_data[['label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8', 'label9', 'label10']]
-    validation_labels = label_encoder.transform(validation_labels_str.values.flatten()).reshape(validation_labels_str.shape)
+    test_case = test_data['case'].tolist()
+    test_labels_str = test_data[['label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8', 'label9', 'label10']]
+    test_labels = label_encoder.transform(test_labels_str.values.flatten()).reshape(test_labels_str.shape)
 
     # Create instances of MyDataset
-    train_dataset = MyDataset(case_part1=train_case_part1, case_part2=train_case_part2, labels=train_labels)
-    validation_dataset = MyDataset(case_part1=validation_case_part1, case_part2=validation_case_part2, labels=validation_labels)
+    train_dataset = MyDataset(case_part1=train_case, labels=train_labels)
+    test_dataset = MyDataset(case_part1=test_case, labels=test_labels)
 
     # Create DataLoader for training
     batch_size = 32  # Adjust as needed
