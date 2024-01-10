@@ -12,7 +12,5 @@ estimator = PyTorch(image_uri = docker_image_uri,
                     py_version='py3',
                     instance_count=1,
                     instance_type='ml.t3.medium',  # Adjust instance type as needed
-                    hyperparameters={'epochs': 1,
-                        'per_device_train_batch_size': 32,
-                        'model_name_or_path': 'distilbert-base-uncased'},
+                    hyperparameters={'learning_rate': 0.001, 'batch_size': 32, 'epochs': 5},
                     output_path='s3://sagemaker-us-east-1-131750570751/Output/') # Our s3 bucket
