@@ -2,19 +2,21 @@ import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
+from sagemaker_estimator import estimator 
 from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import LabelEncoder
-from transformers import AdamW
+from transformers import AdamW, RobertaTokenizer
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
 def train(model, train_loader, optimizer, criterion, device):
     model.train()
     total_loss = 0.0
-
-    for batch in train_loader:
-        input_ids = batch['case']['input_ids'].to(device)
-        attention_mask = batch['case']['attention_mask'].to(device)
+    
+    for i, batch in enumerate(train_loader):
+        print(i)
+        input_ids = batch['Text'].to(device)
+        attention_mask = batch['Text'].to(device)
         labels = batch['labels'].to(device)
 
         optimizer.zero_grad()
@@ -33,8 +35,8 @@ def test(model, test_loader, criterion, device):
 
     with torch.no_grad():
         for batch in test_loader:
-            input_ids = batch['case']['input_ids'].to(device)
-            attention_mask = batch['case']['attention_mask'].to(device)
+            input_ids = batch['Text']['input_ids'].to(device)
+            attention_mask = batch['Text']['attention_mask'].to(device)
             labels = batch['labels'].to(device)
 
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
@@ -62,45 +64,52 @@ def main():
 
     label_encoder = LabelEncoder()
 
-    train_labels = train_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
     encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
 
-    test_labels = test_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    encoded_test_labels = test_labels.apply(label_encoder.transform)
+    test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
+
+    estimator.fit({'train': args.train_data, 'test': args.test_data})
 
     # Create instances of MyDataset
-    train_dataset = MyDataset(case=train_data['case'].tolist(), labels=encoded_train_labels)
-    test_dataset = MyDataset(case=test_data['case'].tolist(), labels=encoded_test_labels)
+    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
+    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
+#     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 
-    # Create DataLoader for training
-    batch_size = 32  # Adjust as needed
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+#     # Create instances of MyDataset
+#     train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
+#     test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
 
-    # Initialize and configure your PyTorch model
-    model = MyModel(num_labels=args.num_labels).to(device)
+#     # Create DataLoader for training
+#     batch_size = 32  # Adjust as needed
+#     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Define optimizer and loss function
-    optimizer = AdamW(model.parameters(), lr=1e-5)
-    criterion = nn.CrossEntropyLoss()
+#     # Initialize and configure your PyTorch model
+#     model = MyModel(num_labels=args.num_labels).to(device)
 
-    # Training loop
-    num_epochs = 5  # Adjust as needed
-    for epoch in range(num_epochs):
-        train_loss = train(model, train_loader, optimizer, criterion, device)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
+#     # Define optimizer and loss function
+#     optimizer = AdamW(model.parameters(), lr=1e-5)
+#     criterion = nn.CrossEntropyLoss()
 
-    # Save the trained model artifacts
-    model.save_pretrained(args.output_dir)
+#     # Training loop
+#     num_epochs = 5  # Adjust as needed
+#     for epoch in range(num_epochs):
+#         train_loss = train(model, train_loader, optimizer, criterion, device)
+#         print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
+
+#     # Save the trained model artifacts
+#     model.save_pretrained(args.output_dir)
     
-    # Create DataLoader for testing
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+#     # Create DataLoader for testing
+#     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # Testing loop
-    test_loss = test(model, test_loader, criterion, device)
-    print(f'Test Loss: {test_loss}')
+#     # Testing loop
+#     test_loss = test(model, test_loader, criterion, device)
+#     print(f'Test Loss: {test_loss}')
 
-    # Save the trained model artifacts
-    model.save_pretrained(args.output_dir)
+#     # Save the trained model artifacts
+#     model.save_pretrained(args.output_dir)
 
 if __name__ == '__main__':
     main()
