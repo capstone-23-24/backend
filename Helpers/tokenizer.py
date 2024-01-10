@@ -4,33 +4,32 @@ from gensim.utils import simple_preprocess
 
 def openCSV(filePath):
     column1 = 'case_part1' 
-    column2 = 'case_part2'
+    
     
     combined_text = []
     with open(filePath, mode='r') as csvfile:
         csv_reader = csv.DictReader(csvfile)
         
-        if column1 not in csv_reader.fieldnames or column2 not in csv_reader.fieldnames:
+        if column1 not in csv_reader.fieldnames:
             print("no such column found in csv")
         
         for row in csv_reader:
-            combined_text = f"{row[column1]} {row[column2]}"
+            combined_text = f"{row[column1]}"
             rawText = processRow(combined_text)
             updateCSV(" ".join(rawText))
     
 def updateCSV(text):
     csv_filename = "SMOutput.csv"
-    splitIndex = 32767
     
-    case_part1 = text[:splitIndex+ 1]
-    case_part2 = text[splitIndex + 1:]
+    
+    case_part1 = text
     
     with open(csv_filename, mode='a', newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
         if csv_file.tell() == 0:
-            csv_writer.writerow(["case_part1", "case_part2"])  
+            csv_writer.writerow(["case_part1"])  
             
-        csv_writer.writerow([case_part1, case_part2])
+        csv_writer.writerow([case_part1])
                 
 def processRow(input_text):
     remove_stopwords(input_text)
