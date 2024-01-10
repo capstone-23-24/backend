@@ -13,15 +13,12 @@ def train(model, train_loader, optimizer, criterion, device):
     total_loss = 0.0
 
     for batch in train_loader:
-        input_ids_part1 = batch['case_part1']['input_ids'].to(device)
-        attention_mask_part1 = batch['case_part1']['attention_mask'].to(device)
-        input_ids_part2 = batch['case_part2']['input_ids'].to(device)
-        attention_mask_part2 = batch['case_part2']['attention_mask'].to(device)
+        input_ids = batch['case']['input_ids'].to(device)
+        attention_mask = batch['case']['attention_mask'].to(device)
         labels = batch['labels'].to(device)
 
         optimizer.zero_grad()
-        outputs = model(input_ids_part1=input_ids_part1, attention_mask_part1=attention_mask_part1,
-                        input_ids_part2=input_ids_part2, attention_mask_part2=attention_mask_part2)
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -34,7 +31,7 @@ def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--train-data', type=str, required=True, help='S3 path to training data')
-    parser.add_argument('--validation-data', type=str, required=True, help='S3 path to validation data')
+    parser.add_argument('--test-data', type=str, required=True, help='S3 path to validation data')
     parser.add_argument('--output-dir', type=str, required=True, help='S3 path for saving model artifacts')
     parser.add_argument('--num-labels', type=int, required=True, help='Number of output labels')
     args = parser.parse_args()
@@ -57,8 +54,8 @@ def main():
     test_labels = label_encoder.transform(test_labels_str.values.flatten()).reshape(test_labels_str.shape)
 
     # Create instances of MyDataset
-    train_dataset = MyDataset(case_part1=train_case, labels=train_labels)
-    test_dataset = MyDataset(case_part1=test_case, labels=test_labels)
+    train_dataset = MyDataset(case=train_case, labels=train_labels)
+    test_dataset = MyDataset(case_=test_case, labels=test_labels)
 
     # Create DataLoader for training
     batch_size = 32  # Adjust as needed
