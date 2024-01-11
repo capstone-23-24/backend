@@ -1,10 +1,11 @@
 from sagemaker.pytorch import PyTorch
+from sagemaker.huggingface import HuggingFace
 
 # Specify your Docker image URI
 docker_image_uri = '131750570751.dkr.ecr.us-east-1.amazonaws.com/capstone:latest'
 
 # Create a PyTorch estimator
-estimator = PyTorch(image_uri = docker_image_uri,
+estimator = HuggingFace(image_uri = docker_image_uri,
                     entry_point='sagemaker_entry_point.py',
                     role='arn:aws:iam::131750570751:role/service-role/AmazonSageMaker-ExecutionRole-20231120T210740',
                     framework_version='1.8.1',
