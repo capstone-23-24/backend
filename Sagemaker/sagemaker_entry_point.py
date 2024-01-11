@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 import torch
+import s3fs
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import LabelEncoder
@@ -57,18 +58,28 @@ def main():
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--learning_rate", type=str, default=5e-5)
     
-    parser.add_argument('--train-data', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
-    parser.add_argument('--test-data', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--output-dir', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/Output/')
-    parser.add_argument('--num-labels', type=int, required=True, default=7)
+    # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
+    # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
+    parser.add_argument('--train-data', type=str, default='training_data.csv')
+    parser.add_argument('--test-data', type=str, default='test_data.csv')
+    parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
+    parser.add_argument('--num-labels', type=int, default=7)
     args = parser.parse_args()
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    fs = s3fs.S3FileSystem()
 
     # Load and preprocess your data
-    train_data = pd.read_csv(args.train_data)
-    test_data = pd.read_csv(args.test_data)
+    with fs.open(args.train_data) as f:
+        train_data = pd.read_csv(f)
+    with fs.open(args.test_data) as f:
+        test_data = pd.read_csv(f)
+
+    # # Load and preprocess your data
+    # train_data = pd.read_csv(args.train_data)
+    # test_data = pd.read_csv(args.test_data)
 
     # Initialize and configure your PyTorch model
     model = MyModel(num_labels=args.num_labels).to(device)

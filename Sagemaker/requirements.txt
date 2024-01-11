@@ -1,4 +1,4 @@
-aiobotocore
+aiobotocore==1.0.1
 aiohttp
 aioitertools
 aiosignal
@@ -75,7 +75,7 @@ pyzmq
 referencing
 regex
 requests
-s3fs
+s3fs==0.4.2
 s3transfer
 safetensors
 sagemaker
