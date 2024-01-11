@@ -16,7 +16,7 @@ COPY sagemaker_entry_point.py .
 # SageMaker expects the program to be in the /opt/ml/code directory
 COPY roberta_model.py /opt/ml/code/roberta_model_class.py
 COPY roberta_dataset.py /opt/ml/code/roberta_dataset_class.py
-COPY sagemaker_entry_point.py /opt/ml/code/entry_point.py
+COPY sagemaker_entry_point.py /opt/ml/code/sagemaker_entry_point.py
 
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
