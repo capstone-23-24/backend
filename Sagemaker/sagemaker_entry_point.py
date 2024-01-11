@@ -2,10 +2,9 @@ import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
-from sagemaker_estimator import estimator 
 from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import LabelEncoder
-from transformers import AdamW, RobertaTokenizer
+from transformers import AdamW, RobertaTokenizer, Trainer, TrainingArguments, AutoTokenizer
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
@@ -49,10 +48,19 @@ def test(model, test_loader, criterion, device):
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train-data', type=str, required=True, help='s3://sagemaker-us-east-1-131750570751/training_data.csv')
-    parser.add_argument('--test-data', type=str, required=True, help='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--output-dir', type=str, required=True, help='s3://sagemaker-us-east-1-131750570751/Output/')
-    parser.add_argument('--num-labels', type=int, required=True, help='7')
+    
+    # hyperparameters sent by the client are passed as command-line arguments to the script.
+    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--train_batch_size", type=int, default=32)
+    parser.add_argument("--eval_batch_size", type=int, default=64)
+    parser.add_argument("--warmup_steps", type=int, default=500)
+    parser.add_argument("--model_name", type=str)
+    parser.add_argument("--learning_rate", type=str, default=5e-5)
+    
+    parser.add_argument('--train-data', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
+    parser.add_argument('--test-data', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
+    parser.add_argument('--output-dir', type=str, required=True, default='s3://sagemaker-us-east-1-131750570751/Output/')
+    parser.add_argument('--num-labels', type=int, required=True, default=7)
     args = parser.parse_args()
 
     # Set device
@@ -62,19 +70,48 @@ def main():
     train_data = pd.read_csv(args.train_data)
     test_data = pd.read_csv(args.test_data)
 
-    label_encoder = LabelEncoder()
+    # Initialize and configure your PyTorch model
+    model = MyModel(num_labels=args.num_labels).to(device)
+    
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    
+    # define training args
+    training_args = TrainingArguments(
+        output_dir=args.model_dir,
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.train_batch_size,
+        per_device_eval_batch_size=args.eval_batch_size,
+        warmup_steps=args.warmup_steps,
+        evaluation_strategy="epoch",
+        logging_dir=f"{args.output_dir}/logs",
+        learning_rate=float(args.learning_rate),
+    )
 
-    train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
+    # create Trainer instance
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+#         compute_metrics=compute_metrics,
+        train_dataset=train_data,
+        eval_dataset=test_data,
+        tokenizer=tokenizer,
+    )
 
-    test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
+    # train model
+    trainer.train()
+    
+#     label_encoder = LabelEncoder()
 
-    estimator.fit({'train': args.train_data, 'test': args.test_data})
+#     train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+#     encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
 
-    # Create instances of MyDataset
-    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
-    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
+#     test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+#     encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
+
+
+#     # Create instances of MyDataset
+#     train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
+#     test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
 #     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 
 #     # Create instances of MyDataset
@@ -85,8 +122,6 @@ def main():
 #     batch_size = 32  # Adjust as needed
 #     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-#     # Initialize and configure your PyTorch model
-#     model = MyModel(num_labels=args.num_labels).to(device)
 
 #     # Define optimizer and loss function
 #     optimizer = AdamW(model.parameters(), lr=1e-5)
