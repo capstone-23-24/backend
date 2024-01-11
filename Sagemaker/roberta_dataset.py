@@ -1,18 +1,33 @@
 from torch.utils.data import Dataset
-        
+
 class MyDataset(Dataset):
-    def __init__(self, case_part1, case_part2, labels):
-        self.case_part1 = case_part1
-        self.case_part2 = case_part2
+    def __init__(self, case, labels, tokenizer, max_length=512):
+        self.case = case
         self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
 
     def __len__(self):
-        return len(self.case_part1)
+        return len(self.case)
 
     def __getitem__(self, idx):
-        return {
-            'case_part1': self.case_part1[idx],
-            'case_part2': self.case_part2[idx],
-            'labels': self.labels[idx]
-        }
+        case_text = str(self.case[idx])
+        labels = self.labels[idx]
 
+        # Tokenize the case text
+        encoding = self.tokenizer.encode_plus(
+            case_text,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            return_token_type_ids=False,
+            padding='max_length',
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt',
+        )
+
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(labels, dtype=torch.long)
+        }
