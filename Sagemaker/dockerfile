@@ -23,8 +23,8 @@ COPY sagemaker_estimator.py /opt/ml/code/sagemaker_estimator.py
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
 
 # Setup AWS Bucket
-RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/training_data.csv ./training_data.csv 
-RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/test_data.csv ./test_data.csv
+# RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/training_data.csv ./training_data.csv 
+# RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/test_data.csv ./test_data.csv
 
 
 # Set up the environment for SageMaker Script Mode

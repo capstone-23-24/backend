@@ -60,8 +60,8 @@ def main():
     
     # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
     # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--train-data', type=str, default='training_data.csv')
-    parser.add_argument('--test-data', type=str, default='test_data.csv')
+    parser.add_argument('--train-data', type=str, default='./training_data.csv')
+    parser.add_argument('--test-data', type=str, default='./test_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
     parser.add_argument('--num-labels', type=int, default=7)
     args = parser.parse_args()
@@ -86,6 +86,9 @@ def main():
     
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
     
+    train_dataset = MyDataset(train_data, tokenizer=tokenizer)
+    test_dataset = MyDataset(test_data, tokenizer=tokenizer)
+    
     # define training args
     training_args = TrainingArguments(
         output_dir=args.model_dir,
@@ -108,54 +111,54 @@ def main():
         tokenizer=tokenizer,
     )
 
-    # train model
-    trainer.train()
+    # # train model
+    # trainer.train()
     
-#     label_encoder = LabelEncoder()
+    # label_encoder = LabelEncoder()
 
-#     train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-#     encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
+    # train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    # encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
 
-#     test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-#     encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
-
-
-#     # Create instances of MyDataset
-#     train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
-#     test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
-#     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-
-#     # Create instances of MyDataset
-#     train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
-#     test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
-
-#     # Create DataLoader for training
-#     batch_size = 32  # Adjust as needed
-#     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    # encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
 
 
-#     # Define optimizer and loss function
-#     optimizer = AdamW(model.parameters(), lr=1e-5)
-#     criterion = nn.CrossEntropyLoss()
+    # # Create instances of MyDataset
+    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
+    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
+    # tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 
-#     # Training loop
-#     num_epochs = 5  # Adjust as needed
-#     for epoch in range(num_epochs):
-#         train_loss = train(model, train_loader, optimizer, criterion, device)
-#         print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
+    # # Create instances of MyDataset
+    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
+    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
 
-#     # Save the trained model artifacts
-#     model.save_pretrained(args.output_dir)
+    # # Create DataLoader for training
+    # batch_size = 32  # Adjust as needed
+    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+
+    # # Define optimizer and loss function
+    # optimizer = AdamW(model.parameters(), lr=1e-5)
+    # criterion = nn.CrossEntropyLoss()
+
+    # # Training loop
+    # num_epochs = 5  # Adjust as needed
+    # for epoch in range(num_epochs):
+    #     train_loss = train(model, train_loader, optimizer, criterion, device)
+    #     print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
+
+    # # Save the trained model artifacts
+    # model.save_pretrained(args.output_dir)
     
-#     # Create DataLoader for testing
-#     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    # # Create DataLoader for testing
+    # test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-#     # Testing loop
-#     test_loss = test(model, test_loader, criterion, device)
-#     print(f'Test Loss: {test_loss}')
+    # # Testing loop
+    # test_loss = test(model, test_loader, criterion, device)
+    # print(f'Test Loss: {test_loss}')
 
-#     # Save the trained model artifacts
-#     model.save_pretrained(args.output_dir)
+    # # Save the trained model artifacts
+    # model.save_pretrained(args.output_dir)
 
 if __name__ == '__main__':
     main()
