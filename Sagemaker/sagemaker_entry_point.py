@@ -13,23 +13,23 @@ def main():
     
     # hyperparameters sent by the client are passed as command-line arguments to the script.
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--train_batch_size", type=int, default=32)
-    parser.add_argument("--eval_batch_size", type=int, default=64)
+    parser.add_argument("--train_batch_size", type=int, default=8)
+    parser.add_argument("--eval_batch_size", type=int, default=8)
     parser.add_argument("--warmup_steps", type=int, default=500)
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--learning_rate", type=str, default=5e-5)
     
     # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
     # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--train', type=str, default='./training_data.csv')
-    parser.add_argument('--test', type=str, default='./test_data.csv')
+    parser.add_argument('--train', type=str, default='/opt/ml/code/training_data.csv')
+    parser.add_argument('--test', type=str, default='/opt/ml/code/test_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
     parser.add_argument('--num-labels', type=int, default=7)
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     train_data = pd.read_csv(args.train)
     test_data = pd.read_csv(args.test)
 
