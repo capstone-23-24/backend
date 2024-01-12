@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 
 class MyDataset(Dataset):
@@ -12,7 +13,11 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx):
         case_text = str(self.case[idx])
-        labels = self.labels[idx]
+
+        try:
+            labels = self.labels[idx]
+        except KeyError:
+            labels = 0
 
         # Tokenize the case text
         encoding = self.tokenizer.encode_plus(

@@ -19,6 +19,14 @@ COPY roberta_model.py /opt/ml/code/roberta_model.py
 COPY roberta_dataset.py /opt/ml/code/roberta_dataset.py
 COPY sagemaker_entry_point.py /opt/ml/code/sagemaker_entry_point.py
 COPY sagemaker_estimator.py /opt/ml/code/sagemaker_estimator.py
+
+# copy the data files into the container
+COPY test_data.csv .
+COPY training_data.csv .
+
+COPY test_data.csv /opt/ml/code/test_data.csv
+COPY training_data.csv /opt/ml/code/training_data.csv
+
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
 

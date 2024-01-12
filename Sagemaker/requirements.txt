@@ -1,3 +1,4 @@
+accelerate
 aiobotocore
 aiohttp
 aioitertools

@@ -1,50 +1,11 @@
 import argparse
 import pandas as pd
 import torch
-import s3fs
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import LabelEncoder
-from transformers import AdamW, RobertaTokenizer, Trainer, TrainingArguments, AutoTokenizer
+from transformers import AdamW, RobertaTokenizer, Trainer, TrainingArguments
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
-
-def train(model, train_loader, optimizer, criterion, device):
-    model.train()
-    total_loss = 0.0
-    
-    for i, batch in enumerate(train_loader):
-        print(i)
-        input_ids = batch['Text'].to(device)
-        attention_mask = batch['Text'].to(device)
-        labels = batch['labels'].to(device)
-
-        optimizer.zero_grad()
-        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item()
-
-    return total_loss / len(train_loader)
-
-def test(model, test_loader, criterion, device):
-    model.eval()
-    total_loss = 0.0
-
-    with torch.no_grad():
-        for batch in test_loader:
-            input_ids = batch['Text']['input_ids'].to(device)
-            attention_mask = batch['Text']['attention_mask'].to(device)
-            labels = batch['labels'].to(device)
-
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            loss = criterion(outputs, labels)
-
-            total_loss += loss.item()
-
-    return total_loss / len(test_loader)
 
 def main():
     # Parse command-line arguments
@@ -60,8 +21,8 @@ def main():
     
     # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
     # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--train-data', type=str, default='./training_data.csv')
-    parser.add_argument('--test-data', type=str, default='./test_data.csv')
+    parser.add_argument('--train', type=str, default='./training_data.csv')
+    parser.add_argument('--test', type=str, default='./test_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
     parser.add_argument('--num-labels', type=int, default=7)
     args = parser.parse_args()
@@ -69,13 +30,8 @@ def main():
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    fs = s3fs.S3FileSystem()
-
-    # Load and preprocess your data
-    with fs.open(args.train_data) as f:
-        train_data = pd.read_csv(f)
-    with fs.open(args.test_data) as f:
-        test_data = pd.read_csv(f)
+    train_data = pd.read_csv(args.train)
+    test_data = pd.read_csv(args.test)
 
     # # Load and preprocess your data
     # train_data = pd.read_csv(args.train_data)
@@ -85,13 +41,22 @@ def main():
     model = MyModel(num_labels=args.num_labels).to(device)
     
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-    
-    train_dataset = MyDataset(train_data, tokenizer=tokenizer)
-    test_dataset = MyDataset(test_data, tokenizer=tokenizer)
+
+    label_encoder = LabelEncoder()
+
+    train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
+
+    test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
+
+    # Create instances of MyDataset
+    train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
+    test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
     
     # define training args
     training_args = TrainingArguments(
-        output_dir=args.model_dir,
+        output_dir=args.output_dir,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.train_batch_size,
         per_device_eval_batch_size=args.eval_batch_size,
@@ -106,13 +71,13 @@ def main():
         model=model,
         args=training_args,
 #         compute_metrics=compute_metrics,
-        train_dataset=train_data,
-        eval_dataset=test_data,
+        train_dataset=train_dataset,
+        eval_dataset=test_dataset,
         tokenizer=tokenizer,
     )
 
-    # # train model
-    # trainer.train()
+    # train model
+    trainer.train()
     
     # label_encoder = LabelEncoder()
 

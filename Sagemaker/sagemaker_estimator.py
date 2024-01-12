@@ -15,4 +15,4 @@ estimator = HuggingFace(image_uri = docker_image_uri,
                     hyperparameters={'learning_rate': 0.001, 'batch_size': 32, 'epochs': 5},
                     output_path='s3://sagemaker-us-east-1-131750570751/Output/') # Our s3 bucket
 
-estimator.fit({'train': 's3://sagemaker-us-east-1-131750570751/training_data.csv', 'test': 's3://sagemaker-us-east-1-131750570751/test_data.csv'})
+estimator.fit({'--train': 's3://sagemaker-us-east-1-131750570751/training_data.csv', '--test': 's3://sagemaker-us-east-1-131750570751/test_data.csv'})
