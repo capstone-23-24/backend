@@ -3,7 +3,8 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder
-from transformers import AdamW, RobertaTokenizer, Trainer, TrainingArguments
+from transformers import RobertaTokenizer, Trainer, TrainingArguments
+from datasets import load_dataset
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
@@ -21,7 +22,7 @@ def main():
     
     # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
     # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
-    parser.add_argument('--train', type=str, default='/opt/ml/code/training_data.csv')
+    parser.add_argument('--train', type=str, default='/opt/ml/code/training_mini_data.csv')
     parser.add_argument('--test', type=str, default='/opt/ml/code/test_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
     parser.add_argument('--num-labels', type=int, default=7)
@@ -44,16 +45,16 @@ def main():
 
     label_encoder = LabelEncoder()
 
-    train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    train_labels = train_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
     encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
 
-    test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
+    test_labels = test_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
     encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
 
     # Create instances of MyDataset
     train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
     test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
-    
+
     # define training args
     training_args = TrainingArguments(
         output_dir=args.output_dir,

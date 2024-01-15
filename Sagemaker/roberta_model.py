@@ -7,12 +7,23 @@ class MyModel(nn.Module):
         super(MyModel, self).__init__()
         self.roberta = RobertaForSequenceClassification.from_pretrained('roberta-base', num_labels=num_labels)
 
-    def forward(self, input_ids, attention_mask):
-        outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
-        logits = outputs.logits
+    def forward(self, input_ids, attention_mask, labels=None):
+        outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+        
+        if labels is not None:
+            # Compute the loss if labels are provided
+            loss = outputs.loss
+            return {"loss": loss}
+        else:
+            # During inference, return the logits
+            logits = outputs.logits
+            return {"logits": logits}
 
-        # Combine or process the logits from different parts as needed
-        # For example, concatenate them or apply some operation
-        combined_logits = torch.cat([logits], dim=1)
+        # outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
+        # logits = outputs.logits
 
-        return combined_logits
+        # # Combine or process the logits from different parts as needed
+        # # For example, concatenate them or apply some operation
+        # combined_logits = torch.cat([logits], dim=1)
+
+        # return combined_logits
