@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder
 from transformers import RobertaTokenizer, Trainer, TrainingArguments
-from datasets import load_dataset
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
@@ -20,8 +19,6 @@ def main():
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--learning_rate", type=str, default=5e-5)
     
-    # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
-    # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
     parser.add_argument('--train', type=str, default='/opt/ml/code/training_mini_data.csv')
     parser.add_argument('--test', type=str, default='/opt/ml/code/test_mini_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
@@ -33,10 +30,6 @@ def main():
 
     train_data = pd.read_csv(args.train)
     test_data = pd.read_csv(args.test)
-
-    # # Load and preprocess your data
-    # train_data = pd.read_csv(args.train_data)
-    # test_data = pd.read_csv(args.test_data)
 
     # Initialize and configure your PyTorch model
     model = MyModel(num_labels=args.num_labels).to(device)
@@ -79,52 +72,9 @@ def main():
 
     # train model
     trainer.train()
-    
-    # label_encoder = LabelEncoder()
 
-    # train_labels = train_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    # encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
-
-    # test_labels = test_data[['Text', 'isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    # encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
-
-
-    # # Create instances of MyDataset
-    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels)
-    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels)
-    # tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-
-    # # Create instances of MyDataset
-    # train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
-    # test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
-
-    # # Create DataLoader for training
-    # batch_size = 32  # Adjust as needed
-    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-
-    # # Define optimizer and loss function
-    # optimizer = AdamW(model.parameters(), lr=1e-5)
-    # criterion = nn.CrossEntropyLoss()
-
-    # # Training loop
-    # num_epochs = 5  # Adjust as needed
-    # for epoch in range(num_epochs):
-    #     train_loss = train(model, train_loader, optimizer, criterion, device)
-    #     print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
-
-    # # Save the trained model artifacts
-    # model.save_pretrained(args.output_dir)
-    
-    # # Create DataLoader for testing
-    # test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-    # # Testing loop
-    # test_loss = test(model, test_loader, criterion, device)
-    # print(f'Test Loss: {test_loss}')
-
-    # # Save the trained model artifacts
-    # model.save_pretrained(args.output_dir)
+    # Save the trained model artifacts
+    model.save_model(args.output_dir)
 
 if __name__ == '__main__':
     main()

@@ -18,6 +18,9 @@ class MyModel(nn.Module):
             # During inference, return the logits
             logits = outputs.logits
             return {"logits": logits}
+        
+    def save_model(self, output_dir):
+        self.roberta.save_pretrained(output_dir)
 
         # outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
         # logits = outputs.logits
