@@ -23,7 +23,7 @@ def main():
     # parser.add_argument('--train-data', type=str, default='s3://sagemaker-us-east-1-131750570751/training_data.csv')
     # parser.add_argument('--test-data', type=str, default='s3://sagemaker-us-east-1-131750570751/test_data.csv')
     parser.add_argument('--train', type=str, default='/opt/ml/code/training_mini_data.csv')
-    parser.add_argument('--test', type=str, default='/opt/ml/code/test_data.csv')
+    parser.add_argument('--test', type=str, default='/opt/ml/code/test_mini_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://sagemaker-us-east-1-131750570751/Output/')
     parser.add_argument('--num-labels', type=int, default=7)
     args, _ = parser.parse_known_args()
