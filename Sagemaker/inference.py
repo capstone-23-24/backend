@@ -1,29 +1,37 @@
 import torch
 import boto3
 import tarfile
-from transformers import RobertaTokenizer
+from transformers import RobertaConfig, RobertaTokenizer
 from sagemaker_inference import content_types, default_inference_handler, encoder
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 
 # Function to download and extract model from S3
-def download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_path):
+def download_extract_model(s3_bucket, s3_object, local_tar_file):
     s3 = boto3.client('s3')
     s3.download_file(s3_bucket, s3_object, local_tar_file)
 
     with tarfile.open(local_tar_file) as tar:
         tar.extractall()
-    return local_model_path
 
 # Download and extract the model (adjust the paths as necessary)
 s3_bucket = 'sagemaker-us-east-1-131750570751'
 s3_object = 'Output/capstone-2024-01-19-19-21-40-374/output/model.tar.gz'
 local_tar_file = 'model.tar.gz'
-local_model_path = 'model.pth'  # Update this to the actual model file path inside the tarball
-model_file_path = download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_path)
+download_extract_model(s3_bucket, s3_object, local_tar_file)
 
-# Load your trained model
-model = MyModel()
-model.load_state_dict(torch.load(model_file_path))
+# Path to the extracted model files
+local_model_dir = 'extracted_model_directory'  # Update this with the directory name inside the tarball
+
+# Load the configuration from config.json
+config = RobertaConfig.from_json_file(f"{local_model_dir}/config.json")
+
+# Initialize your model with the loaded configuration
+model = MyModel(config)
+
+# Load the weights from pytorch_model.bin
+model.load_state_dict(torch.load(f"{local_model_dir}/pytorch_model.bin", map_location=torch.device('cpu')))
+
+# Set the model to evaluation mode
 model.eval()
 
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
