@@ -80,6 +80,7 @@ s3fs
 s3transfer
 safetensors
 sagemaker
+sagemaker-inference
 schema
 scikit-learn
 scipy
