@@ -1,67 +1,44 @@
+import json
+import os
 import torch
-import boto3
-import tarfile
-from transformers import RobertaConfig, RobertaTokenizer
-from sagemaker_inference import content_types, default_inference_handler, encoder
-from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
+import numpy as np
+from roberta_model import MyModel
 
-# Function to download and extract model from S3
-def download_extract_model(s3_bucket, s3_object, local_tar_file):
-    s3 = boto3.client('s3')
-    s3.download_file(s3_bucket, s3_object, local_tar_file)
+def model_fn(model_dir):
+    """
+    Deserialize and return fitted model.
+    """
+    model = MyModel(num_labels=7)
+    model.load_state_dict(torch.load(os.path.join(model_dir, 'pytorch_model.bin')))
+    return model
 
-    with tarfile.open(local_tar_file) as tar:
-        tar.extractall()
 
-# Download and extract the model (adjust the paths as necessary)
-s3_bucket = 'sagemaker-us-east-1-131750570751'
-s3_object = 'Output/capstone-2024-01-19-19-21-40-374/output/model.tar.gz'
-local_tar_file = 'model.tar.gz'
-download_extract_model(s3_bucket, s3_object, local_tar_file)
+def input_fn(request_body, request_content_type):
+    if request_content_type == "text/json":
+        return request_body["Text"]
+    else:
+        raise ValueError(
+            "Content type {} is not supported.".format(request_content_type)
+        )
 
-# Path to the extracted model files
-local_model_dir = 'extracted_model_directory'  # Update this with the directory name inside the tarball
 
-# Load the configuration from config.json
-config = RobertaConfig.from_json_file(f"{local_model_dir}/config.json")
+def predict_fn(input_data, model):
+    prediction = model.predict(input_data)
+    feature_contribs = model.predict(input_data, pred_contribs=True, validate_features=False)
+    print(prediction)
+    print(feature_contribs)
+    output = np.hstack((prediction[:, np.newaxis], feature_contribs))
+    return output
 
-# Initialize your model with the loaded configuration
-model = MyModel(config)
 
-# Load the weights from pytorch_model.bin
-model.load_state_dict(torch.load(f"{local_model_dir}/pytorch_model.bin", map_location=torch.device('cpu')))
+def output_fn(predictions, content_type):
+    """
+    After invoking predict_fn, the model server invokes `output_fn`.
+    """
 
-# Set the model to evaluation mode
-model.eval()
+    return predictions
 
-class ModelHandler(default_inference_handler.DefaultInferenceHandler):
-    def __init__(self, model):
-        super(ModelHandler, self).__init__()
-        self.model = model
-        self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-
-    def default_input_fn(self, input_data, content_type):
-        if content_type == content_types.JSON:
-            input_text = input_data["text"]
-        else:
-            input_text = input_data.decode("utf-8")
-        inputs = self.tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
-        return inputs
-
-    def default_predict_fn(self, inputs, model):
-        with torch.no_grad():
-            outputs = model(**inputs)
-        return outputs
-
-    def default_output_fn(self, prediction, accept):
-        return str(prediction)
-
-# Create an instance of the model handler
-model_handler = ModelHandler(model)
-
-# Define the input and output content types for the SageMaker endpoint
-content_type = "application/json"
-accept = "text/plain"
-
-# Invoke the default_inference_handler's handler function
-default_inference_handler.handler(model_handler, content_type, accept)
+    # if content_type == "text/csv":
+    #     return ','.join(str(x) for x in predictions[0])
+    # else:
+    #     raise ValueError("Content type {} is not supported.".format(content_type))
