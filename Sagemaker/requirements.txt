@@ -46,6 +46,7 @@ MarkupSafe
 matplotlib-inline
 mccabe
 mpmath
+multi-model-server
 multidict
 multiprocess
 nest-asyncio

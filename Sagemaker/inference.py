@@ -4,7 +4,7 @@ import boto3
 import tarfile
 import gzip
 from transformers import RobertaConfig, RobertaTokenizer
-from sagemaker_inference import content_types, default_inference_handler, encoder
+from sagemaker_inference import content_types, default_inference_handler, model_server, encoder
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 import urllib.parse
 
@@ -42,7 +42,9 @@ model = MyModel(num_labels=num_labels)
 s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
 local_model_bin_file = '/tmp/pytorch_model.bin'
 s3.download_file(s3_bucket, s3_model_bin_key, local_model_bin_file)
-model.load_state_dict(torch.load(local_model_bin_file, map_location=torch.device('cpu')))
+state_dict = torch.load(local_model_bin_file, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+adapted_dict = {('roberta.' + k): v for k, v in state_dict.items()}
+model.load_state_dict(adapted_dict)
 print(model)
 
 # Set the model to evaluation mode
@@ -77,4 +79,5 @@ content_type = "application/json"
 accept = "text/plain"
 
 # Invoke the default_inference_handler's handler function
-default_inference_handler.handler(model_handler, content_type, accept)
+# default_inference_handler.handler(model_handler, content_type, accept)
+model_server.start_model_server(handler_service=model_handler)

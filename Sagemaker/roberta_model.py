@@ -21,12 +21,3 @@ class MyModel(nn.Module):
         
     def save_model(self, output_dir):
         self.roberta.save_pretrained(output_dir)
-
-        # outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
-        # logits = outputs.logits
-
-        # # Combine or process the logits from different parts as needed
-        # # For example, concatenate them or apply some operation
-        # combined_logits = torch.cat([logits], dim=1)
-
-        # return combined_logits
