@@ -111,4 +111,4 @@ model_handler = ModelHandler(model)
 
 # Start the model server with our handler
 logger.info("Starting model server")
-model_server.start_model_server(handler_service=model_handler
+model_server.start_model_server(handler_service=model_handler)
