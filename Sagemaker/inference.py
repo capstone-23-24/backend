@@ -99,3 +99,4 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 model_handler = ModelHandler(model)
 
 # Start the model server with our handler
+model_server.start_model_server(handler_service=model_handler)
