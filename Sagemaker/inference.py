@@ -30,46 +30,6 @@ def download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir
         logger.error("Failed to download or extract model: %s", e)
         raise
 
-num_labels = 7
-s3_bucket = 'sagemaker-us-east-1-131750570751'
-s3_object = 'Output/capstone-2024-01-19-19-21-40-374/output/model.tar.gz'
-local_tar_file = '/tmp/model.tar.gz'
-local_model_dir = '/tmp/extracted_model_directory/'
-
-download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir)
-
-# Load the configuration from config.json
-s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
-local_config_file = '/tmp/config.json'
-try:
-    s3 = boto3.client('s3')
-    logger.error("Downloading model configuration")
-    s3.download_file(s3_bucket, urllib.parse.urlparse(s3_config_url).path.lstrip('/'), local_config_file)
-    config = RobertaConfig.from_json_file(local_config_file)
-    logger.error("Model configuration loaded")
-except Exception as e:
-    logger.error("Failed to download or load model configuration: %s", e)
-    raise
-
-# Initialize your model with the loaded configuration
-model = MyModel(num_labels=num_labels)
-
-s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
-local_model_bin_file = '/tmp/pytorch_model.bin'
-try:
-    logger.error("Downloading model binary")
-    s3.download_file(s3_bucket, s3_model_bin_key, local_model_bin_file)
-    state_dict = torch.load(local_model_bin_file, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    adapted_dict = {('roberta.' + k): v for k, v in state_dict.items()}
-    model.load_state_dict(adapted_dict)
-    logger.error("Model loaded successfully")
-except Exception as e:
-    logger.error("Failed to download or load model binary: %s", e)
-    raise
-
-# Set the model to evaluation mode
-model.eval()
-
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     def __init__(self, model):
         super(ModelHandler, self).__init__()
@@ -95,8 +55,49 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         logger.error("Preparing output data")
         return str(prediction)
 
-# Create an instance of the model handler
-model_handler = ModelHandler(model)
+if __name__ == "__main__":
+    num_labels = 7
+    s3_bucket = 'sagemaker-us-east-1-131750570751'
+    s3_object = 'Output/capstone-2024-01-19-19-21-40-374/output/model.tar.gz'
+    local_tar_file = '/tmp/model.tar.gz'
+    local_model_dir = '/tmp/extracted_model_directory/'
 
-# Start the model server with our handler
-model_server.start_model_server(handler_service=model_handler)
+    download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir)
+
+    # Load the configuration from config.json
+    s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
+    local_config_file = '/tmp/config.json'
+    try:
+        s3 = boto3.client('s3')
+        logger.error("Downloading model configuration")
+        s3.download_file(s3_bucket, urllib.parse.urlparse(s3_config_url).path.lstrip('/'), local_config_file)
+        config = RobertaConfig.from_json_file(local_config_file)
+        logger.error("Model configuration loaded")
+    except Exception as e:
+        logger.error("Failed to download or load model configuration: %s", e)
+        raise
+
+    # Initialize your model with the loaded configuration
+    model = MyModel(num_labels=num_labels)
+
+    s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
+    local_model_bin_file = '/tmp/pytorch_model.bin'
+    try:
+        logger.error("Downloading model binary")
+        s3.download_file(s3_bucket, s3_model_bin_key, local_model_bin_file)
+        state_dict = torch.load(local_model_bin_file, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        adapted_dict = {('roberta.' + k): v for k, v in state_dict.items()}
+        model.load_state_dict(adapted_dict)
+        logger.error("Model loaded successfully")
+    except Exception as e:
+        logger.error("Failed to download or load model binary: %s", e)
+        raise
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Create an instance of the model handler
+    model_handler = ModelHandler(model)
+
+    # Start the model server with our handler
+    model_server.start_model_server(handler_service=model_handler)
