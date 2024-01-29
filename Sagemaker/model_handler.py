@@ -120,8 +120,10 @@ model.eval()
 # Create an instance of the model handler
 model_handler = ModelHandler(model)
 
-def handle(request):
+def handle(request, context):
     logger.error("Called handler function!")
+    logger.debug("Request: " + request)
+    logger.debug("Context: " + context)
     try:
         predictions = model_handler.default_predict_fn(request)
         return predictions
