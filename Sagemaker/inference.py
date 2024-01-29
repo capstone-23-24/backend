@@ -61,7 +61,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 if __name__ == "__main__":
     num_labels = 7
     s3_bucket = 'sagemaker-us-east-1-131750570751'
-    s3_object = '/Output/demo-search-3/output/model.tar.gz'
+    s3_object = 'Output/demo-search-3/output/model.tar.gz'
     local_tar_file = '/tmp/model.tar.gz'
     local_model_dir = '/tmp/extracted_model_directory/'
 
