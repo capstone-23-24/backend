@@ -31,7 +31,10 @@ def download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir
         raise
 
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
+    logger.error("Initializing ModelHandler")
+    
     def __init__(self, model):
+        logger.error("Initializing __init__ function")
         super(ModelHandler, self).__init__()
         self.model = model
         self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
