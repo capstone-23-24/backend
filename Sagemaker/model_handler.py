@@ -38,9 +38,9 @@ def clear_s3_bucket(target_s3_bucket, target_s3_prefix):
         s3_client.delete_objects(Bucket=target_s3_bucket, Delete=delete_keys)
         logger.info(f"Cleared {target_s3_prefix} in {target_s3_bucket}")
 
-def download_extract_upload(s3_bucket, s3_object, target_s3_bucket, target_s3_prefix):
+def download_extract_upload(s3_bucket, s3_object, target_s3_prefix):
     # First, clear the target S3 prefix
-    clear_s3_bucket(target_s3_bucket, target_s3_prefix)
+    clear_s3_bucket(s3_bucket, target_s3_prefix)
 
     # Download the tar.gz file from S3 to /tmp
     local_tar_path = os.path.join(tempfile.gettempdir(), 'model.tar.gz')
@@ -56,8 +56,8 @@ def download_extract_upload(s3_bucket, s3_object, target_s3_bucket, target_s3_pr
         file_path = os.path.join(tempfile.gettempdir(), member.name)
         if os.path.isfile(file_path):
             s3_key = os.path.join(target_s3_prefix, member.name)
-            s3_client.upload_file(file_path, target_s3_bucket, s3_key)
-            logger.info(f"Uploaded {s3_key} to {target_s3_bucket}")
+            s3_client.upload_file(file_path, s3_bucket, s3_key)
+            logger.info(f"Uploaded {s3_key} to {s3_bucket}")
             
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     logger.error("Initializing ModelHandler")
@@ -93,7 +93,7 @@ s3_object = 'Output/demo-search-3/output/model.tar.gz'
 local_tar_file = '/tmp/model.tar.gz'
 local_model_dir = '/tmp/extracted_model_directory/'
 
-download_extract_upload(s3_bucket, s3_object, local_tar_file, local_model_dir)
+download_extract_upload(s3_bucket, s3_object, local_model_dir)
 
 # Load the configuration from config.json
 s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
