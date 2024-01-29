@@ -93,7 +93,7 @@ s3_object = 'Output/demo-search-3/output/model.tar.gz'
 local_tar_file = '/tmp/model.tar.gz'
 local_model_dir = '/tmp/extracted_model_directory/'
 
-download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir)
+download_extract_upload(s3_bucket, s3_object, local_tar_file, local_model_dir)
 
 # Load the configuration from config.json
 s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
