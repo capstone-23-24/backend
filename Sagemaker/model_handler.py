@@ -51,13 +51,13 @@ def download_extract_upload(s3_bucket, s3_object, target_s3_prefix):
     with tarfile.open(local_tar_path, "r:gz") as tar:
         tar.extractall(path=tempfile.gettempdir())
 
-    # Upload extracted files to the target S3 location
-    for member in tar.getmembers():
-        file_path = os.path.join(tempfile.gettempdir(), member.name)
-        if os.path.isfile(file_path):
-            s3_key = os.path.join(target_s3_prefix, member.name)
-            s3_client.upload_file(file_path, s3_bucket, s3_key)
-            logger.info(f"Uploaded {s3_key} to {s3_bucket}")
+        # Upload extracted files to the target S3 location
+        for member in tar.getmembers():
+            file_path = os.path.join(tempfile.gettempdir(), member.name)
+            if os.path.isfile(file_path):
+                s3_key = os.path.join(target_s3_prefix, member.name)
+                s3_client.upload_file(file_path, s3_bucket, s3_key)
+                logger.info(f"Uploaded {s3_key} to {s3_bucket}")
             
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     logger.error("Initializing ModelHandler")
