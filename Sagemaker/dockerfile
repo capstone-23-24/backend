@@ -51,6 +51,7 @@ COPY test_mini_data.csv /opt/ml/code/test_mini_data.csv
 
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
+ENV AWS_DEFAULT_REGION us-east-1
 
 # Setup AWS Bucket
 # RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/training_data.csv ./training_data.csv 
@@ -64,3 +65,4 @@ ENV SM_OUTPUT_DIR /opt/ml/output
 
 # Define an entry point
 ENTRYPOINT ["python3", "/opt/ml/code/inference.py"]
+# ENTRYPOINT ["python3", "/opt/ml/code/sagemaker_entry_point.py"]

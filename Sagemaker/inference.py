@@ -48,20 +48,20 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         inputs = self.tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
         return inputs
 
-    def default_predict_fn(self, inputs, model):
+    def default_predict_fn(self, inputs):
         logger.error("Making predictions")
         with torch.no_grad():
-            outputs = model(**inputs)
-        return outputs
+            outputs = self.model(**inputs)
+        return outputs['logits']
 
     def default_output_fn(self, prediction, accept):
         logger.error("Preparing output data")
         return str(prediction)
-
+# s3://sagemaker-us-east-1-131750570751/Output/demo-search-3/output/model.tar.gz
 if __name__ == "__main__":
     num_labels = 7
     s3_bucket = 'sagemaker-us-east-1-131750570751'
-    s3_object = 'Output/capstone-2024-01-19-19-21-40-374/output/model.tar.gz'
+    s3_object = '/Output/demo-search-3/output/model.tar.gz'
     local_tar_file = '/tmp/model.tar.gz'
     local_model_dir = '/tmp/extracted_model_directory/'
 
@@ -102,5 +102,14 @@ if __name__ == "__main__":
     # Create an instance of the model handler
     model_handler = ModelHandler(model)
 
+    def handle(request):
+        logger.error("Called handler function!")
+        try:
+            predictions = model_handler.default_predict_fn(request)
+            return predictions
+        except:
+            logger.error("Unable to predict with given data!")
+            return { "error": "unable to predict with given data!" }
+
     # Start the model server with our handler
-    model_server.start_model_server(handler_service=model_handler)
+    model_server.start_model_server(handler_service=handle)
