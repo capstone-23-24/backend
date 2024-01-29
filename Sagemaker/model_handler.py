@@ -14,41 +14,51 @@ import urllib.parse
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Function to download and extract model from S3
-def download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir):
-    try:
-        # Create the target directory if it doesn't exist
-        os.makedirs(local_model_dir, exist_ok=True)
+import boto3
+import tarfile
+import os
+import tempfile
+import logging
 
-        # Clear the target directory before downloading new files
-        for filename in os.listdir(local_model_dir):
-            file_path = os.path.join(local_model_dir, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                logger.error('Failed to delete %s. Reason: %s', file_path, e)
-                raise
+# Initialize logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-        # Download the model tar.gz file from S3
-        s3 = boto3.client('s3')
-        logger.info(f"Downloading model from S3 bucket '{s3_bucket}'")
-        s3.download_file(s3_bucket, s3_object, local_tar_file)
+# Initialize S3 client
+s3_client = boto3.client('s3')
 
-        # Extract the model files
-        logger.info("Extracting model files")
-        with gzip.open(local_tar_file, 'rb') as f_in:
-            with tarfile.open(fileobj=f_in, mode='r') as tar:
-                tar.extractall(local_model_dir)
-                extracted_files = tar.getnames()  # Use a separate variable to store the names of extracted files
-                logger.info(f"Extracted Files: {extracted_files}")
+def clear_s3_bucket(target_s3_bucket, target_s3_prefix):
+    # List all objects in the specified prefix
+    objects_to_delete = s3_client.list_objects_v2(Bucket=target_s3_bucket, Prefix=target_s3_prefix)
 
-    except Exception as e:
-        logger.error("Failed to download or extract model: %s", e)
-        raise
+    # Delete the objects found in the prefix
+    if 'Contents' in objects_to_delete:
+        delete_keys = {'Objects': []}
+        delete_keys['Objects'] = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
+        s3_client.delete_objects(Bucket=target_s3_bucket, Delete=delete_keys)
+        logger.info(f"Cleared {target_s3_prefix} in {target_s3_bucket}")
 
+def download_extract_upload(s3_bucket, s3_object, target_s3_bucket, target_s3_prefix):
+    # First, clear the target S3 prefix
+    clear_s3_bucket(target_s3_bucket, target_s3_prefix)
+
+    # Download the tar.gz file from S3 to /tmp
+    local_tar_path = os.path.join(tempfile.gettempdir(), 'model.tar.gz')
+    s3_client.download_file(s3_bucket, s3_object, local_tar_path)
+    logger.info(f"Downloaded {s3_object} from {s3_bucket} to {local_tar_path}")
+
+    # Extract the tar.gz file
+    with tarfile.open(local_tar_path, "r:gz") as tar:
+        tar.extractall(path=tempfile.gettempdir())
+
+    # Upload extracted files to the target S3 location
+    for member in tar.getmembers():
+        file_path = os.path.join(tempfile.gettempdir(), member.name)
+        if os.path.isfile(file_path):
+            s3_key = os.path.join(target_s3_prefix, member.name)
+            s3_client.upload_file(file_path, target_s3_bucket, s3_key)
+            logger.info(f"Uploaded {s3_key} to {target_s3_bucket}")
+            
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     logger.error("Initializing ModelHandler")
     
