@@ -2,6 +2,7 @@ import os
 import torch
 import boto3
 import tarfile
+import tempfile
 import gzip
 import logging
 import shutil
@@ -13,51 +14,59 @@ import urllib.parse
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-import boto3
-import tarfile
-import os
-import tempfile
-import logging
-
-# Initialize logging
-logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize S3 client
 s3_client = boto3.client('s3')
 
 def clear_s3_bucket(target_s3_bucket, target_s3_prefix):
+
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(target_s3_bucket)
+
+    # Iterate through objects in the specified folder
+    for obj in bucket.objects.filter(Prefix=target_s3_prefix):
+        key = obj.key
+        if not key.endswith('.txt'):
+            obj.delete()
+
     # List all objects in the specified prefix
-    objects_to_delete = s3_client.list_objects_v2(Bucket=target_s3_bucket, Prefix=target_s3_prefix)
+    # objects_to_delete = s3_client.list_objects_v2(Bucket=target_s3_bucket, Prefix=target_s3_prefix)
+    # logger.error(f"Objects to be deleted: {objects_to_delete}")
 
-    # Delete the objects found in the prefix
-    if 'Contents' in objects_to_delete:
-        delete_keys = {'Objects': []}
-        delete_keys['Objects'] = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
-        s3_client.delete_objects(Bucket=target_s3_bucket, Delete=delete_keys)
-        logger.info(f"Cleared {target_s3_prefix} in {target_s3_bucket}")
+    # # Delete the objects found in the prefix
+    # if 'Contents' in objects_to_delete:
+    #     delete_keys = {'Objects': []}
+    #     delete_keys['Objects'] = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
+    #     s3_client.delete_objects(Bucket=target_s3_bucket, Delete=delete_keys)
+    #     logger.error(f"Cleared {target_s3_prefix} in {target_s3_bucket}")
 
-def download_extract_upload(s3_bucket, s3_object, target_s3_prefix):
+def download_extract_upload(s3_bucket, s3_object, target_s3_prefix, local_tar_file):
     # First, clear the target S3 prefix
     clear_s3_bucket(s3_bucket, target_s3_prefix)
 
     # Download the tar.gz file from S3 to /tmp
-    local_tar_path = os.path.join(tempfile.gettempdir(), 'model.tar.gz')
-    s3_client.download_file(s3_bucket, s3_object, local_tar_path)
-    logger.info(f"Downloaded {s3_object} from {s3_bucket} to {local_tar_path}")
+    s3_client.download_file(s3_bucket, s3_object, local_tar_file)
+    logger.error(f"Downloaded {s3_object} from {s3_bucket} to {local_tar_file}")
 
-    # Extract the tar.gz file
-    with tarfile.open(local_tar_path, "r:gz") as tar:
-        tar.extractall(path=tempfile.gettempdir())
+    with gzip.open(local_tar_file, 'rb') as f_in:
+        with tarfile.open(fileobj=f_in, mode='r') as tar:
+            tar.extractall('/tmp/' + target_s3_prefix)
+            local_model_dir = tar.getnames()
+            logger.error(f"Uploaded {local_model_dir} to {s3_bucket}")
 
-        # Upload extracted files to the target S3 location
-        for member in tar.getmembers():
-            file_path = os.path.join(tempfile.gettempdir(), member.name)
-            if os.path.isfile(file_path):
-                s3_key = os.path.join(target_s3_prefix, member.name)
-                s3_client.upload_file(file_path, s3_bucket, s3_key)
-                logger.info(f"Uploaded {s3_key} to {s3_bucket}")
+
+    # # Extract the tar.gz file
+    # with tarfile.open(local_tar_path, "r:gz") as tar:
+    #     tar.extractall(path=tempfile.gettempdir())
+
+    #     # Upload extracted files to the target S3 location
+    #     for member in tar.getmembers():
+    #         file_path = os.path.join(tempfile.gettempdir(), member.name)
+    #         if os.path.isfile(file_path):
+    #             s3_key = os.path.join(target_s3_prefix, member.name)
+    #             s3_client.upload_file(file_path, s3_bucket, s3_key)
+    #             logger.info(f"Uploaded {s3_key} to {s3_bucket}")
             
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     logger.error("Initializing ModelHandler")
@@ -92,16 +101,16 @@ s3_bucket = 'sagemaker-us-east-1-131750570751'
 s3_object = 'Output/demo-search-3/output/model.tar.gz'
 local_tar_file = '/tmp/model.tar.gz'
 local_model_dir = '/tmp/extracted_model_directory/'
+s3_extracted_folder_prefix = 'extracted_model_directory/'
 
-download_extract_upload(s3_bucket, s3_object, local_model_dir)
+download_extract_upload(s3_bucket, s3_object, s3_extracted_folder_prefix, local_tar_file)
 
 # Load the configuration from config.json
-s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
+s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/Config.json'
 local_config_file = '/tmp/config.json'
 try:
-    s3 = boto3.client('s3')
     logger.error("Downloading model configuration")
-    s3.download_file(s3_bucket, urllib.parse.urlparse(s3_config_url).path.lstrip('/'), local_config_file)
+    s3_client.download_file(s3_bucket, urllib.parse.urlparse(s3_config_url).path.lstrip('/'), local_config_file)
     config = RobertaConfig.from_json_file(local_config_file)
     logger.error("Model configuration loaded")
 except Exception as e:
@@ -115,7 +124,7 @@ s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570
 local_model_bin_file = '/tmp/pytorch_model.bin'
 try:
     logger.error("Downloading model binary")
-    s3.download_file(s3_bucket, s3_model_bin_key, local_model_bin_file)
+    s3_client.download_file(s3_bucket, s3_model_bin_key, local_model_bin_file)
     state_dict = torch.load(local_model_bin_file, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     adapted_dict = {('roberta.' + k): v for k, v in state_dict.items()}
     model.load_state_dict(adapted_dict)
