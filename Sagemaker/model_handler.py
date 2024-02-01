@@ -43,7 +43,7 @@ def clear_s3_bucket(target_s3_bucket, target_s3_prefix):
 
 def download_extract_upload(s3_bucket, s3_object, target_s3_prefix, local_tar_file):
     # First, clear the target S3 prefix
-    clear_s3_bucket(s3_bucket, target_s3_prefix)
+    # clear_s3_bucket(s3_bucket, target_s3_prefix)
 
     # Download the tar.gz file from S3 to /tmp
     s3_client.download_file(s3_bucket, s3_object, local_tar_file)
@@ -106,7 +106,7 @@ s3_extracted_folder_prefix = 'extracted_model_directory/'
 download_extract_upload(s3_bucket, s3_object, s3_extracted_folder_prefix, local_tar_file)
 
 # Load the configuration from config.json
-s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/Config.json'
+s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory/Config.json'
 local_config_file = '/tmp/config.json'
 try:
     logger.error("Downloading model configuration")
@@ -120,7 +120,7 @@ except Exception as e:
 # Initialize your model with the loaded configuration
 model = MyModel(num_labels=num_labels)
 
-s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
+s3_model_bin_key = 'extracted_model_directory/pytorch_model.bin'
 local_model_bin_file = '/tmp/pytorch_model.bin'
 try:
     logger.error("Downloading model binary")
