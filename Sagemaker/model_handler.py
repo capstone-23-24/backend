@@ -79,7 +79,7 @@ local_model_dir = '/tmp/extracted_model_directory/'
 download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir)
 
 # Load the configuration from config.json
-s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/config.json'
+s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory/s3:/sagemaker-us-east-1-131750570751/Output/config.json'
 local_config_file = '/tmp/config.json'
 try:
     logger.error("Downloading model configuration")
@@ -93,7 +93,7 @@ except Exception as e:
 # Initialize your model with the loaded configuration
 model = MyModel(num_labels=num_labels)
 
-s3_model_bin_key = 'extracted_model_directory//s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
+s3_model_bin_key = 'extracted_model_directory/s3:/sagemaker-us-east-1-131750570751/Output/pytorch_model.bin'
 local_model_bin_file = '/tmp/pytorch_model.bin'
 try:
     logger.error("Downloading model binary")
