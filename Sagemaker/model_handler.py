@@ -72,7 +72,14 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
     def default_output_fn(self, prediction, accept):
         logger.info("Preparing output data")
-        return str(prediction)
+        # Convert the prediction to a list or dictionary based on your requirements
+        result = {'prediction': prediction.tolist()}  # Change this line based on your prediction type
+        
+        # Check the accept header to determine the response content type
+        if accept.lower() == content_types.JSON:
+            return json.dumps(result)
+        else:
+            return str(result)
 
 num_labels = 7
 s3_bucket = 'sagemaker-us-east-1-131750570751'
@@ -123,7 +130,7 @@ def handle(request, context):
     try:
         input = model_handler.default_input_fn(parse_bytearray(request[0]["body"]), content_type=content_types.JSON)
         predictions = model_handler.default_predict_fn(input)
-        output = model_handler.default_output_fn(predictions)
+        output = model_handler.default_output_fn(predictions, content_types.JSON)
         return output
     except Exception as err:
         logger.error(f"Unable to predict with given data due to: {str(err)}")
