@@ -13,7 +13,7 @@ import urllib.parse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize S3 client
@@ -113,12 +113,14 @@ model.eval()
 model_handler = ModelHandler(model)
 
 def handle(request, context):
-    logger.error("Called handler function!")
-    logger.debug("Request: " + request)
-    logger.debug("Context: " + context)
+    logger.info("Called handler function!")
+    logger.info(f"Request: {str(request)}")
+    logger.info(f"Context: {str(context)}")
     try:
-        predictions = model_handler.default_predict_fn(request)
-        return predictions
-    except:
-        logger.error("Unable to predict with given data!")
-        return { "error": "unable to predict with given data!" }
+        input = model_handler.default_input_fn(request["body"], content_type=content_types.JSON)
+        predictions = model_handler.default_predict_fn(input)
+        output = model_handler.default_output_fn(predictions)
+        return output
+    except Exception as err:
+        logger.error(f"Unable to predict with given data due to: {str(err)}")
+        return { "status": 500, "message": "unable to predict with given data!", "error": str(err) }
