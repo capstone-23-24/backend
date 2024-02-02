@@ -121,7 +121,7 @@ def handle(request, context):
     logger.info(f"Request: {str(request)}")
     logger.info(f"Context: {str(context)}")
     try:
-        input = model_handler.default_input_fn(parse_bytearray(request["body"]), content_type=content_types.JSON)
+        input = model_handler.default_input_fn(parse_bytearray(request[0]["body"]), content_type=content_types.JSON)
         predictions = model_handler.default_predict_fn(input)
         output = model_handler.default_output_fn(predictions)
         return output
