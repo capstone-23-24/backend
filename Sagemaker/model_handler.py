@@ -70,7 +70,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
             outputs = self.model(**inputs)
         return outputs['logits']
 
-    def default_output_fn(self, prediction, accept):
+    def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
         # Convert the prediction to a list or dictionary based on your requirements
         result = {'prediction': prediction.tolist()}  # Change this line based on your prediction type
@@ -79,10 +79,11 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         
         # Check the accept header to determine the response content type
         if accept.lower() == content_types.JSON:
-            result_str = json.dumps(result)
-            return result_str.encode('utf-8')
+            # result_str = json.dumps(result)
+            # return result_str.encode('utf-8')
+            return [result]
         else:
-            return str(result).encode('utf-8')
+            raise Exception(f'Requested unsupported ContentType in Accept:{accept}')
 
 num_labels = 7
 s3_bucket = 'sagemaker-us-east-1-131750570751'
