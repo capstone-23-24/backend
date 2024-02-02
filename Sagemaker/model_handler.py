@@ -74,12 +74,15 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         logger.info("Preparing output data")
         # Convert the prediction to a list or dictionary based on your requirements
         result = {'prediction': prediction.tolist()}  # Change this line based on your prediction type
+
+        logger.info(f"Results: {result}")
         
         # Check the accept header to determine the response content type
         if accept.lower() == content_types.JSON:
-            return json.dumps(result)
+            result_str = json.dumps(result)
+            return result_str.encode('utf-8')
         else:
-            return str(result)
+            return str(result).encode('utf-8')
 
 num_labels = 7
 s3_bucket = 'sagemaker-us-east-1-131750570751'
