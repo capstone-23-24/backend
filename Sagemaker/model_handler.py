@@ -72,18 +72,24 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
     def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
-        # Convert the prediction to a list or dictionary based on your requirements
-        result = {'prediction': prediction.tolist()}  # Change this line based on your prediction type
+    
+        # Assuming the model's prediction is a sequence of token IDs
+        if isinstance(prediction, torch.Tensor):
+            prediction = prediction.detach().cpu().numpy()  # Convert to numpy array if it's a tensor
+
+        # Decode each sequence in the prediction to text
+        decoded_texts = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in prediction]
+
+        result = {'predictions': decoded_texts}
 
         logger.info(f"Results: {result}")
-        
-        # Check the accept header to determine the response content type
+
         if accept.lower() == content_types.JSON:
-            # result_str = json.dumps(result)
-            # return result_str.encode('utf-8')
-            return [result]
+            result_str = json.dumps(result)  # Convert dictionary to JSON string
+            return result_str.encode('utf-8')  # Encode as UTF-8 for network transmission
         else:
-            raise Exception(f'Requested unsupported ContentType in Accept:{accept}')
+            raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
+
 
 num_labels = 7
 s3_bucket = 'sagemaker-us-east-1-131750570751'
