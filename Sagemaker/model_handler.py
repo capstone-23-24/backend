@@ -86,7 +86,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
         if accept.lower() == content_types.JSON:
             result_str = json.dumps(result)  # Convert dictionary to JSON string
-            return result_str.encode('utf-8')  # Encode as UTF-8 for network transmission
+            return result_str  # Encode as UTF-8 for network transmission
         else:
             raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
 
