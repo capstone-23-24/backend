@@ -78,6 +78,8 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         # Assuming the model's prediction is a sequence of token IDs
         if isinstance(prediction, torch.Tensor):
             prediction = prediction.detach().cpu().numpy()  # Convert to numpy array if it's a tensor
+            
+        logger.info(f"predictions: {prediction}")
 
         # Decode each sequence in the prediction to text
         decoded_texts = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in prediction]
