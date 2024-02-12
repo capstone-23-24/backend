@@ -68,6 +68,8 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         logger.info("Making predictions")
         with torch.no_grad():
             outputs = self.model(**inputs)
+        
+        logger.info(f"outputs: {outputs['logits']}")
         return outputs['logits']
 
     def default_output_fn(self, prediction, accept=content_types.JSON):
