@@ -76,15 +76,27 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
     def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
 
-        # Assuming the model's prediction is a sequence of logits
+        # Ensure the prediction is on the CPU and convert to a numpy array if it's a tensor
         if isinstance(prediction, torch.Tensor):
-            prediction = prediction.detach().cpu()  # Ensure the tensor is on CPU
+            prediction = prediction.detach().cpu().numpy()
 
-        # Perform greedy decoding: select the token ID with the highest score for each sequence
-        token_ids = prediction.argmax(dim=-1).tolist()
+        # Initialize an empty list to hold the decoded texts
+        decoded_texts = []
 
-        # Decode token IDs to text
-        decoded_texts = [self.tokenizer.decode([token_id], skip_special_tokens=True) for token_id in token_ids]
+        # Iterate over each sequence in the batch (assuming prediction shape is [batch_size, seq_length, vocab_size])
+        for sequence_logits in prediction:
+            # Initialize an empty list to hold the generated token IDs for this sequence
+            generated_token_ids = []
+
+            # Iterate over each position in the sequence
+            for position_logits in sequence_logits:
+                # Select the token ID with the highest logit value (greedy decoding)
+                token_id = position_logits.argmax()
+                generated_token_ids.append(token_id)
+
+            # Decode the sequence of token IDs to text
+            decoded_text = self.tokenizer.decode(generated_token_ids, skip_special_tokens=True)
+            decoded_texts.append(decoded_text)
 
         result = {'predictions': decoded_texts}
 
@@ -94,6 +106,9 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
             return [result]  # Return the result as a list containing the dictionary
         else:
             raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
+
+            
+            
 
 
 
