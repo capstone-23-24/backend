@@ -80,7 +80,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         # Decode each sequence in the prediction to text
         decoded_texts = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in prediction]
 
-        result = {'predictions': decoded_texts}
+        result = {'predictions': json.loads(decoded_texts)}
 
         logger.info(f"Results: {result}")
 
