@@ -72,27 +72,29 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         logger.info(f"outputs: {outputs['logits']}")
         return outputs['logits']
 
+
     def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
-    
-        # Assuming the model's prediction is a sequence of token IDs
-        if isinstance(prediction, torch.Tensor):
-            prediction = prediction.detach().cpu().numpy()  # Convert to numpy array if it's a tensor
-            
-        logger.info(f"predictions: {prediction}")
 
-        # Decode each sequence in the prediction to text
-        decoded_texts = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in prediction]
+        # Assuming the model's prediction is a sequence of logits
+        if isinstance(prediction, torch.Tensor):
+            prediction = prediction.detach().cpu()  # Ensure the tensor is on CPU
+
+        # Perform greedy decoding: select the token ID with the highest score for each sequence
+        token_ids = prediction.argmax(dim=-1).tolist()
+
+        # Decode token IDs to text
+        decoded_texts = [self.tokenizer.decode([token_id], skip_special_tokens=True) for token_id in token_ids]
 
         result = {'predictions': decoded_texts}
 
         logger.info(f"Results: {result}")
 
         if accept.lower() == content_types.JSON:
-            result_str = result  # Convert dictionary to JSON string
-            return [result_str]  # Encode as UTF-8 for network transmission
+            return [result]  # Return the result as a list containing the dictionary
         else:
             raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
+
 
 
 num_labels = 7
