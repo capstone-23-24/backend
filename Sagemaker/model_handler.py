@@ -80,13 +80,13 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         # Decode each sequence in the prediction to text
         decoded_texts = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in prediction]
 
-        result = {'predictions': json.loads(decoded_texts)}
+        result = {'predictions': decoded_texts}
 
         logger.info(f"Results: {result}")
 
         if accept.lower() == content_types.JSON:
-            result_str = json.dumps(result)  # Convert dictionary to JSON string
-            return result_str  # Encode as UTF-8 for network transmission
+            result_str = result  # Convert dictionary to JSON string
+            return [result_str]  # Encode as UTF-8 for network transmission
         else:
             raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
 
