@@ -3,9 +3,26 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder
-from transformers import RobertaTokenizer, Trainer, TrainingArguments
+from transformers import RobertaTokenizerFast, Trainer, TrainingArguments
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
+
+def preprocess_data(file_path, tokenizer, label_map):
+    data = pd.read_csv(file_path)
+    tokenized_texts = []
+    aligned_labels = []
+    
+    for _, row in data.iterrows():
+        text = row['Text'] 
+        labels = row['label'].split()
+        
+        encoding = tokenizer(text, add_special_tokens=True, truncation=True, padding='max_length', max_length=512, return_tensors='pt')
+        tokenized_texts.append(encoding)
+        
+        numerical_labels = [label_map[label] for label in labels]
+        aligned_labels.append(numerical_labels)
+    
+    return tokenized_texts, aligned_labels
 
 def main():
     # Parse command-line arguments
@@ -27,26 +44,26 @@ def main():
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    train_data = pd.read_csv(args.train)
-    test_data = pd.read_csv(args.test)
-
-    # Initialize and configure your PyTorch model
-    model = MyModel(num_labels=args.num_labels).to(device)
     
-    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    # Label map
+    label_map = {
+        'O': 0,          # Outside of any named entity
+        'B-PERSON': 1,     # Beginning of a name
+        'I-PERSON': 2,     # Inside a name
+        'B-LOCATION': 3,      # Beginning of a location
+        'I-LOCATION': 4,      # Inside a location
+        '-100': -100     # Special token used to ignore subtokens in loss calculation
+    }
 
-    label_encoder = LabelEncoder()
+    # Getting the Data and preprocessing
+    train_texts, train_labels = preprocess_data(args.train, tokenizer, label_map)
+    test_texts, test_labels = preprocess_data(args.test, tokenizer, label_map)
+    
+    tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
+    model = MyModel(num_labels=args.num_labels).to(device)
 
-    train_labels = train_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    encoded_train_labels = train_labels.apply(label_encoder.fit_transform)
-
-    test_labels = test_data[['isP_bin', '1RE_val', '2RE_val', 'G_val', 'A_val']]
-    encoded_test_labels = test_labels.apply(label_encoder.fit_transform)
-
-    # Create instances of MyDataset
-    train_dataset = MyDataset(case=train_data['Text'].tolist(), labels=encoded_train_labels, tokenizer=tokenizer)
-    test_dataset = MyDataset(case=test_data['Text'].tolist(), labels=encoded_test_labels, tokenizer=tokenizer)
+    train_dataset = MyDataset(texts=train_texts, labels=train_labels, tokenizer=tokenizer)
+    test_dataset = MyDataset(texts=test_texts, labels=test_labels, tokenizer=tokenizer)
 
     # define training args
     training_args = TrainingArguments(
@@ -64,7 +81,6 @@ def main():
     trainer = Trainer(
         model=model,
         args=training_args,
-#         compute_metrics=compute_metrics,
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         tokenizer=tokenizer,
