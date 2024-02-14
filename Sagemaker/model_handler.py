@@ -66,7 +66,6 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         self.model.eval()  # Ensure the model is in evaluation mode
         with torch.no_grad():
             outputs = self.model(**inputs)
-        logger.info(f"Output: {outputs}")
         return {'logits': outputs['logits'], 'input_ids': inputs['input_ids']}
 
 
@@ -85,6 +84,9 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
             entities = []
             current_entity = None
+            logger.info(f"Tokens: {tokens}")
+            logger.info(f"Labels: {labels}")
+            logger.info(f"entites: {zip(tokens, labels)}")
             for token, label in zip(tokens, labels):
                 if label in ['Person', 'Location']:
                     if current_entity and current_entity["entity"] == label:
