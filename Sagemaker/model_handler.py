@@ -113,7 +113,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
        
 num_labels = 7
 s3_bucket = 'capstone-19283'
-s3_object = 'output/demo-search-ner-5/output/model.tar.gz'
+s3_object = 'output/demo-search-ner-6/output/model.tar.gz'
 local_tar_file = '/tmp/model.tar.gz'
 local_model_dir = '/tmp/extracted_model_directory/'
 
