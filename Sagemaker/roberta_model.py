@@ -13,8 +13,9 @@ class MyModel(nn.Module):
             'Location': 2,      # Beginning of a location
             '-100': -100     # Special token used to ignore subtokens in loss calculation
         }
-        self.config.id2Label = { v:k for k, v in self.label_map.items() }
-        self.config.label2id = self.label_map
+        self.roberta.config.id2Label = { v:k for k, v in self.label_map.items() }
+        self.roberta.config.label2id = self.label_map
+        self.config = self.roberta.config
 
 
     def forward(self, input_ids, attention_mask, labels=None):
