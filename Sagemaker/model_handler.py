@@ -6,7 +6,7 @@ import gzip
 import logging
 import chardet
 import json
-from transformers import RobertaConfig, RobertaTokenizer
+from transformers import RobertaConfig, RobertaTokenizer, RobertaTokenizerFast, RobertaForTokenClassification
 from sagemaker_inference import content_types, default_inference_handler
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 import urllib.parse
@@ -46,72 +46,68 @@ def download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir
             local_model_dir = tar.getnames()
             logger.info(f"Extracted Files: {local_model_dir}")
             
+
 class ModelHandler(default_inference_handler.DefaultInferenceHandler):
-    logger.error("Initializing ModelHandler")
-    
+    # Other parts of the class remain unchanged...
+
     def __init__(self, model):
-        logger.info("Initializing __init__ function")
         super(ModelHandler, self).__init__()
         self.model = model
-        self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        self.tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
 
     def default_input_fn(self, input_data, content_type):
         logger.info("Preparing input data")
-        if content_type == content_types.JSON:
-            input_text = input_data["text"]
-        else:
-            input_text = input_data.decode("utf-8")
-        inputs = self.tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+        input_text = parse_bytearray(input_data) if content_type == content_types.JSON else input_data.decode("utf-8")
+        inputs = self.tokenizer(input_text, return_tensors="pt", padding=True, truncation=True, max_length=512)
         return inputs
 
     def default_predict_fn(self, inputs):
         logger.info("Making predictions")
+        self.model.eval()  # Ensure the model is in evaluation mode
         with torch.no_grad():
             outputs = self.model(**inputs)
-        
-        logger.info(f"outputs: {outputs['logits']}")
-        return outputs['logits']
+        return outputs.logits
 
 
     def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
+        prediction = prediction.detach().cpu().numpy()
+        
+        results = []
+        for idx, pred in enumerate(prediction):
+            tokens = self.tokenizer.convert_ids_to_tokens(inputs["input_ids"][idx])
+            label_indices = pred.argmax(axis=1)
+            labels = [self.model.config.id2label[label_id] for label_id in label_indices]
+            
+            entities = []
+            current_entity = None
+            for token, label in zip(tokens, labels):
+                if label in ['Person', 'Location']:
+                    if current_entity and current_entity["entity"] == label:
+                        # Continue the current entity
+                        current_entity["text"] += " " + token
+                    else:
+                        # Finish the current entity and start a new one
+                        if current_entity:
+                            entities.append(current_entity)
+                        current_entity = {"entity": label, "text": token}
+                else:
+                    # Outside any entity
+                    if current_entity:
+                        entities.append(current_entity)
+                        current_entity = None
 
-        # Ensure the prediction is on the CPU and convert to a numpy array if it's a tensor
-        if isinstance(prediction, torch.Tensor):
-            prediction = prediction.detach().cpu().numpy()
+            # Add the last entity to the list if it exists
+            if current_entity:
+                entities.append(current_entity)
 
-        # Initialize an empty list to hold the decoded texts
-        decoded_texts = []
-
-        # Iterate over each sequence in the batch (assuming prediction shape is [batch_size, seq_length, vocab_size])
-        for sequence_logits in prediction:
-            # Initialize an empty list to hold the generated token IDs for this sequence
-            generated_token_ids = []
-
-            # Iterate over each position in the sequence
-            for position_logits in sequence_logits:
-                # Select the token ID with the highest logit value (greedy decoding)
-                token_id = position_logits.argmax()
-                generated_token_ids.append(token_id)
-
-            # Decode the sequence of token IDs to text
-            decoded_text = self.tokenizer.decode(generated_token_ids, skip_special_tokens=True)
-            decoded_texts.append(decoded_text)
-
-        result = {'predictions': decoded_texts}
-
-        logger.info(f"Results: {result}")
+            results.append({"entities": entities})
 
         if accept.lower() == content_types.JSON:
-            return [result]  # Return the result as a list containing the dictionary
+            return json.dumps(results)
         else:
-            raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
-
-            
-            
-
-
-
+            raise Exception(f'Requested unsupported ContentType in Accept: {accept}')   
+        
 num_labels = 7
 s3_bucket = 'capstone-19283'
 s3_object = 'output/demo-search-3/output/model.tar.gz'
