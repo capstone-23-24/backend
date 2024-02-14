@@ -71,43 +71,43 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
     def default_output_fn(self, prediction, accept=content_types.JSON):
         logger.info("Preparing output data")
-        prediction = prediction.detach().cpu().numpy()
-        
+
+        # Assuming 'prediction' is a dictionary that includes both logits and input IDs
+        logits = prediction["logits"].detach().cpu().numpy()
+        input_ids = prediction["input_ids"].cpu().numpy()  # Assuming input_ids are included in the prediction
+
         results = []
-        for idx, pred in enumerate(prediction):
-            tokens = self.tokenizer.convert_ids_to_tokens(inputs["input_ids"][idx])
-            label_indices = pred.argmax(axis=1)
+        for idx, logit in enumerate(logits):
+            tokens = self.tokenizer.convert_ids_to_tokens(input_ids[idx])
+            label_indices = logit.argmax(axis=1)
             labels = [self.model.config.id2label[label_id] for label_id in label_indices]
-            
+
             entities = []
             current_entity = None
             for token, label in zip(tokens, labels):
                 if label in ['Person', 'Location']:
                     if current_entity and current_entity["entity"] == label:
-                        # Continue the current entity
                         current_entity["text"] += " " + token
                     else:
-                        # Finish the current entity and start a new one
                         if current_entity:
                             entities.append(current_entity)
                         current_entity = {"entity": label, "text": token}
                 else:
-                    # Outside any entity
                     if current_entity:
                         entities.append(current_entity)
                         current_entity = None
 
-            # Add the last entity to the list if it exists
             if current_entity:
                 entities.append(current_entity)
 
             results.append({"entities": entities})
 
         if accept.lower() == content_types.JSON:
-            return json.dumps(results)
+            response = json.dumps(results)
+            return response
         else:
-            raise Exception(f'Requested unsupported ContentType in Accept: {accept}')   
-        
+            raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
+       
 num_labels = 7
 s3_bucket = 'capstone-19283'
 s3_object = 'output/demo-search-ner-3/output/model.tar.gz'
