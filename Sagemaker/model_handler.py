@@ -111,14 +111,14 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
        
 num_labels = 7
 s3_bucket = 'capstone-19283'
-s3_object = 'output/demo-search-ner-3/output/model.tar.gz'
+s3_object = 'output/demo-search-ner-5/output/model.tar.gz'
 local_tar_file = '/tmp/model.tar.gz'
 local_model_dir = '/tmp/extracted_model_directory/'
 
 download_extract_model(s3_bucket, s3_object, local_tar_file, local_model_dir)
 
 # Load the configuration from config.json
-s3_config_url = 's3://sagemaker-us-east-1-131750570751/extracted_model_directory/s3:/sagemaker-us-east-1-131750570751/Output/config.json'
+s3_config_url = 's3://capstone-19283/extracted_model_directory/s3:/sagemaker-us-east-1-131750570751/Output/config.json'
 local_config_file = '/tmp/config.json'
 try:
     logger.info("Downloading model configuration")
