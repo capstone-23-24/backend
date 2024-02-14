@@ -45,11 +45,15 @@ COPY test_data.csv .
 COPY training_data.csv .
 COPY training_mini_data.csv .
 COPY test_mini_data.csv .
+COPY NER_training_data.csv .
+COPY NER_test_data.csv .
 
 COPY test_data.csv /opt/ml/code/test_data.csv
 COPY training_data.csv /opt/ml/code/training_data.csv
 COPY training_mini_data.csv /opt/ml/code/training_mini_data.csv
 COPY test_mini_data.csv /opt/ml/code/test_mini_data.csv
+COPY NER_training_data.csv /opt/ml/code/NER_training_data.csv
+COPY NER_test_data.csv /opt/ml/code/NER_test_data.csv
 
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
@@ -66,5 +70,5 @@ ENV SM_MODEL_DIR /opt/ml/model
 ENV SM_OUTPUT_DIR /opt/ml/output
 
 # Define an entry point
-ENTRYPOINT ["python3", "/opt/ml/code/inference.py"]
-# ENTRYPOINT ["python3", "/opt/ml/code/sagemaker_entry_point.py"]
+# ENTRYPOINT ["python3", "/opt/ml/code/inference.py"]
+ENTRYPOINT ["python3", "/opt/ml/code/sagemaker_entry_point.py"]

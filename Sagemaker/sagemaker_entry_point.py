@@ -1,11 +1,16 @@
 import argparse
 import pandas as pd
 import torch
-import torch.nn as nn
-from sklearn.preprocessing import LabelEncoder
+import logging
+import json
 from transformers import RobertaTokenizerFast, Trainer, TrainingArguments
 from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
 from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def preprocess_data(file_path, tokenizer, label_map):
     data = pd.read_csv(file_path)
@@ -14,12 +19,15 @@ def preprocess_data(file_path, tokenizer, label_map):
     
     for _, row in data.iterrows():
         text = row['Text'] 
-        labels = row['label'].split()
+        labels = json.loads(row['label'])
+
+        logger.info(f"text: {text}")
+        logger.info(f"labels: {labels}")
         
         encoding = tokenizer(text, add_special_tokens=True, truncation=True, padding='max_length', max_length=512, return_tensors='pt')
         tokenized_texts.append(encoding)
         
-        numerical_labels = [label_map[label] for label in labels]
+        numerical_labels = [label_map[label["labels"][0]] for label in labels]
         aligned_labels.append(numerical_labels)
     
     return tokenized_texts, aligned_labels
@@ -36,8 +44,8 @@ def main():
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--learning_rate", type=str, default=5e-5)
     
-    parser.add_argument('--train', type=str, default='/opt/ml/code/training_mini_data.csv')
-    parser.add_argument('--test', type=str, default='/opt/ml/code/test_mini_data.csv')
+    parser.add_argument('--train', type=str, default='/opt/ml/code/NER_training_data.csv')
+    parser.add_argument('--test', type=str, default='/opt/ml/code/NER_test_data.csv')
     parser.add_argument('--output-dir', type=str, default='s3://capstone-19283/output/')
     parser.add_argument('--num-labels', type=int, default=7)
     args, _ = parser.parse_known_args()
@@ -48,19 +56,17 @@ def main():
     # Label map
     label_map = {
         'O': 0,          # Outside of any named entity
-        'B-PERSON': 1,     # Beginning of a name
-        'I-PERSON': 2,     # Inside a name
-        'B-LOCATION': 3,      # Beginning of a location
-        'I-LOCATION': 4,      # Inside a location
+        'Person': 1,     # Beginning of a name
+        'Location': 2,      # Beginning of a location
         '-100': -100     # Special token used to ignore subtokens in loss calculation
     }
+
+    tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
+    model = MyModel(num_labels=args.num_labels).to(device)
 
     # Getting the Data and preprocessing
     train_texts, train_labels = preprocess_data(args.train, tokenizer, label_map)
     test_texts, test_labels = preprocess_data(args.test, tokenizer, label_map)
-    
-    tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
-    model = MyModel(num_labels=args.num_labels).to(device)
 
     train_dataset = MyDataset(texts=train_texts, labels=train_labels, tokenizer=tokenizer)
     test_dataset = MyDataset(texts=test_texts, labels=test_labels, tokenizer=tokenizer)
