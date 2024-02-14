@@ -66,7 +66,8 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
         self.model.eval()  # Ensure the model is in evaluation mode
         with torch.no_grad():
             outputs = self.model(**inputs)
-        return outputs.logits
+        logger.info(f"Output: {outputs}")
+        return {'logits': outputs['logits'], 'input_ids': inputs['input_ids']}
 
 
     def default_output_fn(self, prediction, accept=content_types.JSON):
