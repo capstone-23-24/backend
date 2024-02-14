@@ -53,20 +53,12 @@ def main():
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Label map
-    label_map = {
-        'O': 0,          # Outside of any named entity
-        'Person': 1,     # Beginning of a name
-        'Location': 2,      # Beginning of a location
-        '-100': -100     # Special token used to ignore subtokens in loss calculation
-    }
-
     tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
     model = MyModel(num_labels=args.num_labels).to(device)
 
     # Getting the Data and preprocessing
-    train_texts, train_labels = preprocess_data(args.train, tokenizer, label_map)
-    test_texts, test_labels = preprocess_data(args.test, tokenizer, label_map)
+    train_texts, train_labels = preprocess_data(args.train, tokenizer, model.label_map)
+    test_texts, test_labels = preprocess_data(args.test, tokenizer, model.label_map)
 
     train_dataset = MyDataset(texts=train_texts, labels=train_labels, tokenizer=tokenizer)
     test_dataset = MyDataset(texts=test_texts, labels=test_labels, tokenizer=tokenizer)

@@ -7,6 +7,15 @@ class MyModel(nn.Module):
         super(MyModel, self).__init__()
         self.num_labels = num_labels
         self.roberta = RobertaForTokenClassification.from_pretrained('roberta-base', num_labels=self.num_labels)
+        self.label_map = {
+            'O': 0,          # Outside of any named entity
+            'Person': 1,     # Beginning of a name
+            'Location': 2,      # Beginning of a location
+            '-100': -100     # Special token used to ignore subtokens in loss calculation
+        }
+        self.config.id2Label = { v:k for k, v in self.label_map.items() }
+        self.config.label2id = self.label_map
+
 
     def forward(self, input_ids, attention_mask, labels=None):
         outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
