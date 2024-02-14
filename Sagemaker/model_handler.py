@@ -57,7 +57,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
     def default_input_fn(self, input_data, content_type):
         logger.info("Preparing input data")
-        input_text = parse_bytearray(input_data) if content_type == content_types.JSON else input_data.decode("utf-8")
+        input_text = input_data["text"] if content_type == content_types.JSON else input_data.decode("utf-8")
         inputs = self.tokenizer(input_text, return_tensors="pt", padding=True, truncation=True, max_length=512)
         return inputs
 
@@ -103,8 +103,8 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
             results.append({"entities": entities})
 
         if accept.lower() == content_types.JSON:
-            response = json.dumps(results)
-            return response
+            response = results
+            return [response]
         else:
             raise Exception(f'Requested unsupported ContentType in Accept: {accept}')
        
