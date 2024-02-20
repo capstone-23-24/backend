@@ -5,6 +5,7 @@ import tarfile
 import gzip
 import logging
 import chardet
+import traceback
 import json
 from transformers import RobertaConfig, RobertaTokenizer, RobertaTokenizerFast, RobertaForTokenClassification
 from sagemaker_inference import content_types, default_inference_handler
@@ -74,19 +75,19 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
 
         # Assuming 'prediction' is a dictionary that includes both logits and input IDs
         logits = prediction["logits"].detach().cpu().numpy()
-        input_ids = prediction["input_ids"].cpu().numpy()  # Assuming input_ids are included in the prediction
+        input_ids = prediction["input_ids"].cpu().numpy() 
 
         results = []
         for idx, logit in enumerate(logits):
             tokens = self.tokenizer.convert_ids_to_tokens(input_ids[idx])
             label_indices = logit.argmax(axis=1)
+            print(f"label_indices: {label_indices}")
             labels = [self.model.config.id2label[label_id] for label_id in label_indices]
 
             entities = []
             current_entity = None
             logger.info(f"Tokens: {tokens}")
             logger.info(f"Labels: {labels}")
-            logger.info(f"entites: {zip(tokens, labels)}")
             for token, label in zip(tokens, labels):
                 if label in ['Person', 'Location']:
                     if current_entity and current_entity["entity"] == label:
@@ -163,5 +164,7 @@ def handle(request, context):
         output = model_handler.default_output_fn(predictions, content_types.JSON)
         return output
     except Exception as err:
-        logger.error(f"Unable to predict with given data due to: {str(err)}")
-        return { "status": 500, "message": "unable to predict with given data!", "error": str(err) }
+        error_str = traceback.format_exc()
+        logger.error(f"Unable to predict with given data due to: {error_str}")
+        logger.debug(error_str)
+        return [{ "status": 500, "message": "unable to predict with given data!", "error": str(err) }]
