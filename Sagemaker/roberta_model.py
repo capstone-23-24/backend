@@ -10,6 +10,7 @@ class MyModel(nn.Module):
             'O': 0,          # Outside of any named entity
             'Person': 1,     # Beginning of a name
             'Location': 2,      # Beginning of a location
+            'Gender': 3,        # Beginning of a Gender
             '-100': -100     # Special token used to ignore subtokens in loss calculation
         }
         self.roberta = RobertaForTokenClassification.from_pretrained('roberta-base', num_labels=len(self.label_map))
