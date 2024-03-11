@@ -41,19 +41,11 @@ COPY model_handler.py /opt/ml/code/model_handler.py
 COPY inference.py /opt/ml/code/inference.py
 
 # copy the data files into the container
-COPY test_data.csv .
-COPY training_data.csv .
-COPY training_mini_data.csv .
-COPY test_mini_data.csv .
 COPY NER_training_data.csv .
-COPY NER_test_data.csv .
+COPY NER_testing_data.csv .
 
-COPY test_data.csv /opt/ml/code/test_data.csv
-COPY training_data.csv /opt/ml/code/training_data.csv
-COPY training_mini_data.csv /opt/ml/code/training_mini_data.csv
-COPY test_mini_data.csv /opt/ml/code/test_mini_data.csv
 COPY NER_training_data.csv /opt/ml/code/NER_training_data.csv
-COPY NER_test_data.csv /opt/ml/code/NER_test_data.csv
+COPY NER_testing_data.csv /opt/ml/code/NER_testing_data.csv
 
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
