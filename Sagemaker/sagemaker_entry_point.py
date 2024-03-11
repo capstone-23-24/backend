@@ -29,7 +29,7 @@ def preprocess_data(file_path, tokenizer, label_map):
         encoding = tokenizer(text, add_special_tokens=True, truncation=True, padding='max_length', max_length=512, return_tensors='pt')
         tokenized_texts.append(encoding)
         
-        numerical_labels = [label_map[label["Labels"][0]] for label in labels]
+        numerical_labels = [label_map[label["labels"][0]] for label in labels]
         aligned_labels.append(numerical_labels)
     
     return tokenized_texts, aligned_labels
