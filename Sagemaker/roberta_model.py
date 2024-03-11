@@ -8,9 +8,9 @@ class MyModel(nn.Module):
         self.num_labels = num_labels
         self.label_map = {
             'O': 0,          # Outside of any named entity
-            'Person': 1,     # Beginning of a name
-            'Location': 2,      # Beginning of a location
-            'Gender': 3,        # Beginning of a Gender
+            'PERSON': 1,     # Beginning of a name
+            'LOCATION': 2,      # Beginning of a location
+            'GENDER': 3,        # Beginning of a Gender
             '-100': -100     # Special token used to ignore subtokens in loss calculation
         }
         self.roberta = RobertaForTokenClassification.from_pretrained('roberta-base', num_labels=len(self.label_map))
