@@ -89,7 +89,7 @@ class ModelHandler(default_inference_handler.DefaultInferenceHandler):
             logger.info(f"Tokens: {tokens}")
             logger.info(f"Labels: {labels}")
             for token, label in zip(tokens, labels):
-                if label in ['Person', 'Location']:
+                if label in ['PERSON', 'LOCATION', 'GENDER']:
                     if current_entity and current_entity["entity"] == label:
                         current_entity["text"] += " " + token
                     else:
