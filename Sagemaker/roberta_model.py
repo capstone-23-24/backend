@@ -1,21 +1,34 @@
+import torch
 import torch.nn as nn
-from transformers import RobertaForSequenceClassification
+from transformers import RobertaForTokenClassification
 
 class MyModel(nn.Module):
     def __init__(self, num_labels):
         super(MyModel, self).__init__()
-        self.roberta = RobertaForSequenceClassification.from_pretrained('roberta-base', num_labels=num_labels)
+        self.num_labels = num_labels
+        self.label_map = {
+            'O': 0,          # Outside of any named entity
+            'PERSON': 1,     # Beginning of a name
+            'LOCATION': 2,      # Beginning of a location
+            'GENDER': 3,        # Beginning of a Gender
+            '-100': -100     # Special token used to ignore subtokens in loss calculation
+        }
+        self.roberta = RobertaForTokenClassification.from_pretrained('roberta-base', num_labels=len(self.label_map))
+        self.roberta.config.id2label = { v:k for k, v in self.label_map.items() }
+        self.roberta.config.label2id = self.label_map
+        self.config = self.roberta.config
 
-    def forward(self, input_ids_part1, attention_mask_part1, input_ids_part2, attention_mask_part2):
-        outputs = self.roberta(input_ids=input_ids_part1, attention_mask=attention_mask_part1)
-        logits_part1 = outputs.logits
 
-        outputs = self.roberta(input_ids=input_ids_part2, attention_mask=attention_mask_part2)
-        logits_part2 = outputs.logits
+    def forward(self, input_ids, attention_mask, labels=None):
+        outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
-        # Combine or process the logits from different parts as needed
-        # For example, concatenate them or apply some operation
-        combined_logits = torch.cat([logits_part1, logits_part2], dim=1)
-
-        return combined_logits
-
+        if labels is not None:
+            loss = outputs.loss
+            return {"loss": loss, "logits": outputs.logits}
+        else:
+            logits = outputs.logits
+            predicted_labels = torch.argmax(logits, dim=-1).tolist()
+            return {"logits": logits, "predicted_labels": predicted_labels}
+        
+    def save_model(self, output_dir):
+        self.roberta.save_pretrained(output_dir)

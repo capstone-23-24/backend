@@ -8,18 +8,53 @@ WORKDIR /opt/ml/model
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install OpenJDK-8
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+    
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+# Setup JAVA_HOME
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
 # Copy the content of the local src directory to the working directory
-COPY roberta_model_class.py .
-COPY roberta_dataset_class.py .
-COPY entry_point.py .
+COPY roberta_model.py .
+COPY roberta_dataset.py .
+COPY sagemaker_entry_point.py .
+COPY sagemaker_estimator.py .
+COPY model_handler.py .
+COPY inference.py .
 
 # SageMaker expects the program to be in the /opt/ml/code directory
-COPY roberta_model.py /opt/ml/code/roberta_model_class.py
-COPY roberta_dataset.py /opt/ml/code/roberta_dataset_class.py
-COPY sagemaker_entry_point.py /opt/ml/code/entry_point.py
+COPY roberta_model.py /opt/ml/code/roberta_model.py
+COPY roberta_dataset.py /opt/ml/code/roberta_dataset.py
+COPY sagemaker_entry_point.py /opt/ml/code/sagemaker_entry_point.py
+COPY sagemaker_estimator.py /opt/ml/code/sagemaker_estimator.py
+COPY model_handler.py /opt/ml/code/model_handler.py
+COPY inference.py /opt/ml/code/inference.py
+
+# copy the data files into the container
+COPY NER_training_data.csv .
+COPY NER_testing_data.csv .
+
+COPY NER_training_data.csv /opt/ml/code/NER_training_data.csv
+COPY NER_testing_data.csv /opt/ml/code/NER_testing_data.csv
 
 # Set environment variables
 ENV SAGEMAKER_PROGRAM sagemaker_entry_point.py
+ENV AWS_DEFAULT_REGION us-east-1
+
+# Setup AWS Bucket
+# RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/training_data.csv ./training_data.csv 
+# RUN aws s3 cp s3://sagemaker-us-east-1-131750570751/test_data.csv ./test_data.csv
+
 
 # Set up the environment for SageMaker Script Mode
 ENV SM_CHANNEL_TRAINING /opt/ml/input/data/training
@@ -27,4 +62,5 @@ ENV SM_MODEL_DIR /opt/ml/model
 ENV SM_OUTPUT_DIR /opt/ml/output
 
 # Define an entry point
-ENTRYPOINT ["python", "/opt/ml/code/entry_point.py"]
+ENTRYPOINT ["python3", "/opt/ml/code/inference.py"]
+# ENTRYPOINT ["python3", "/opt/ml/code/sagemaker_entry_point.py"]

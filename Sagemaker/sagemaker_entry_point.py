@@ -1,86 +1,120 @@
 import argparse
 import pandas as pd
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
-from sklearn.preprocessing import LabelEncoder
-from transformers import RobertaForSequenceClassification, RobertaTokenizer, AdamW
-from roberta_model_class import MyModel  # Import the MyModel class from roberta_model_class.py
-from roberta_dataset_class import MyDataset # Getting the myDataset class from roberta_dataset.py
+import logging
+import json
+import boto3
+from botocore.exceptions import NoCredentialsError
+from transformers import RobertaTokenizerFast, Trainer, TrainingArguments
+from roberta_model import MyModel  # Import the MyModel class from roberta_model_class.py
+from roberta_dataset import MyDataset  # Getting the MyDataset class from roberta_dataset.py
 
-def train(model, train_loader, optimizer, criterion, device):
-    model.train()
-    total_loss = 0.0
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-    for batch in train_loader:
-        input_ids_part1 = batch['case_part1']['input_ids'].to(device)
-        attention_mask_part1 = batch['case_part1']['attention_mask'].to(device)
-        input_ids_part2 = batch['case_part2']['input_ids'].to(device)
-        attention_mask_part2 = batch['case_part2']['attention_mask'].to(device)
-        labels = batch['labels'].to(device)
+def preprocess_data(file_path, tokenizer, label_map):
+    data = pd.read_csv(file_path)
+    tokenized_texts = []
+    aligned_labels = []
+    
+    for _, row in data.iterrows():
+        text = row['Text'] 
+        labels = json.loads(row['Label'])
 
-        optimizer.zero_grad()
-        outputs = model(input_ids_part1=input_ids_part1, attention_mask_part1=attention_mask_part1,
-                        input_ids_part2=input_ids_part2, attention_mask_part2=attention_mask_part2)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        logger.info(f"Text: {text}")
+        logger.info(f"Labels: {labels}")
+        
+        encoding = tokenizer(text, add_special_tokens=True, truncation=True, padding='max_length', max_length=512, return_tensors='pt')
+        tokenized_texts.append(encoding)
+        
+        numerical_labels = [label_map[label["labels"][0]] for label in labels]
+        aligned_labels.append(numerical_labels)
+    
+    return tokenized_texts, aligned_labels
 
-        total_loss += loss.item()
+def save_to_s3(local_file_path, s3_bucket, s3_key):
+    s3 = boto3.client('s3')
 
-    return total_loss / len(train_loader)
+    try:
+        s3.upload_file(local_file_path, s3_bucket, s3_key)
+        logger.info(f"File uploaded to S3: s3://{s3_bucket}/{s3_key}")
+    except NoCredentialsError:
+        logger.error("Credentials not available. Make sure you have valid AWS credentials.")
+
 
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train-data', type=str, required=True, help='S3 path to training data')
-    parser.add_argument('--validation-data', type=str, required=True, help='S3 path to validation data')
-    parser.add_argument('--output-dir', type=str, required=True, help='S3 path for saving model artifacts')
-    parser.add_argument('--num-labels', type=int, required=True, help='Number of output labels')
-    args = parser.parse_args()
+    
+    # hyperparameters sent by the client are passed as command-line arguments to the script.
+    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--train_batch_size", type=int, default=8)
+    parser.add_argument("--eval_batch_size", type=int, default=8)
+    parser.add_argument("--warmup_steps", type=int, default=500)
+    parser.add_argument("--model_name", type=str)
+    parser.add_argument("--learning_rate", type=str, default=5e-5)
+    
+    parser.add_argument('--train', type=str, default='/opt/ml/code/NER_training_data.csv')
+    parser.add_argument('--test', type=str, default='/opt/ml/code/NER_testing_data.csv')
+    parser.add_argument('--output-dir', type=str, default='s3://capstone-19283/output/')
+    parser.add_argument('--num-labels', type=int, default=7)
+    args, _ = parser.parse_known_args()
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Load and preprocess your data
-    train_data = pd.read_csv(args.train_data)
-    validation_data = pd.read_csv(args.validation_data)
-
-    label_encoder = LabelEncoder()
-
-    train_case_part1 = train_data['casePart1'].tolist()
-    train_case_part2 = train_data['casePart2'].tolist()
-    train_labels_str = train_data[['label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8', 'label9', 'label10']]
-    train_labels = label_encoder.fit_transform(train_labels_str.values.flatten()).reshape(train_labels_str.shape)
-
-    validation_case_part1 = validation_data['casePart1'].tolist()
-    validation_case_part2 = validation_data['casePart2'].tolist()
-    validation_labels_str = validation_data[['label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8', 'label9', 'label10']]
-    validation_labels = label_encoder.transform(validation_labels_str.values.flatten()).reshape(validation_labels_str.shape)
-
-    # Create instances of MyDataset
-    train_dataset = MyDataset(case_part1=train_case_part1, case_part2=train_case_part2, labels=train_labels)
-    validation_dataset = MyDataset(case_part1=validation_case_part1, case_part2=validation_case_part2, labels=validation_labels)
-
-    # Create DataLoader for training
-    batch_size = 32  # Adjust as needed
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-    # Initialize and configure your PyTorch model
+    
+    tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
     model = MyModel(num_labels=args.num_labels).to(device)
 
-    # Define optimizer and loss function
-    optimizer = AdamW(model.parameters(), lr=1e-5)
-    criterion = nn.CrossEntropyLoss()
+    # Getting the Data and preprocessing
+    train_texts, train_labels = preprocess_data(args.train, tokenizer, model.label_map)
+    test_texts, test_labels = preprocess_data(args.test, tokenizer, model.label_map)
 
-    # Training loop
-    num_epochs = 5  # Adjust as needed
-    for epoch in range(num_epochs):
-        train_loss = train(model, train_loader, optimizer, criterion, device)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss}')
+    train_dataset = MyDataset(texts=train_texts, labels=train_labels, tokenizer=tokenizer)
+    test_dataset = MyDataset(texts=test_texts, labels=test_labels, tokenizer=tokenizer)
+
+    # define training args
+    training_args = TrainingArguments(
+        output_dir=args.output_dir,
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.train_batch_size,
+        per_device_eval_batch_size=args.eval_batch_size,
+        warmup_steps=args.warmup_steps,
+        evaluation_strategy="epoch",
+        logging_dir=f"{args.output_dir}/logs",
+        learning_rate=float(args.learning_rate),
+    )
+
+    # create Trainer instance
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=test_dataset,
+        tokenizer=tokenizer,
+    )
+
+    # train model
+    trainer.train()
+
+    results = trainer.evaluate()
+
+    for key, value in results.items():
+        logger.info(f"{key}: {value}")
+    
+    # Save evaluation results to a local file
+    local_result_file = 'evaluation_results.txt'
+    with open(local_result_file, 'w') as file:
+        for key, value in results.items():
+            file.write(f"{key}: {value}\n")
+
+    # Save evaluation results to S3
+    save_to_s3(local_result_file, args.output_dir.split('/')[2], 'evaluation_results.txt')
 
     # Save the trained model artifacts
-    model.save_pretrained(args.output_dir)
+    model.save_model(args.output_dir)
 
 if __name__ == '__main__':
     main()
